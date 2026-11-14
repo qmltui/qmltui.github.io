@@ -1,0 +1,14 @@
+{
+  "name": "qmltui-website",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync": "node scripts/sync-docs.mjs",
+    "docs:dev": "node scripts/sync-docs.mjs && vitepress dev docs",
+    "docs:build": "node scripts/sync-docs.mjs && vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.3"
+  }
+}

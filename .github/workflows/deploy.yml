@@ -1,0 +1,140 @@
+name: Build & Deploy Website and WebAssembly Playground
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      qmltui_ref:
+        description: 'qmltui/qmltui git ref (branch, tag, or commit SHA) to build'
+        required: false
+        default: 'main'
+        type: string
+      qmltui_apps_ref:
+        description: 'qmltui/apps git ref (branch, tag, or commit SHA) for showcase GIFs'
+        required: false
+        default: 'main'
+        type: string
+  repository_dispatch:
+    types: [qmltui-updated]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      QMLTUI_REF: ${{ github.event.client_payload.ref || inputs.qmltui_ref || 'main' }}
+      QMLTUI_APPS_REF: ${{ github.event.client_payload.apps_ref || inputs.qmltui_apps_ref || 'main' }}
+    steps:
+      - name: Checkout qmltui/website
+        uses: actions/checkout@v4
+
+      - name: Checkout qmltui/qmltui at ${{ env.QMLTUI_REF }}
+        uses: actions/checkout@v4
+        with:
+          repository: qmltui/qmltui
+          ref: ${{ env.QMLTUI_REF }}
+          path: .cache/qmltui
+
+      - name: Checkout qmltui/apps at ${{ env.QMLTUI_APPS_REF }}
+        uses: actions/checkout@v4
+        with:
+          repository: qmltui/apps
+          ref: ${{ env.QMLTUI_APPS_REF }}
+          path: .cache/qmltui-apps
+
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Cache compiled WebAssembly playground (skips Qt/Emscripten on doc-only changes)
+        id: wasm-cache
+        uses: actions/cache@v4
+        with:
+          path: build-wasm/www
+          key: wasm-${{ runner.os }}-${{ hashFiles('.cache/qmltui/CMakeLists.txt', '.cache/qmltui/cmake/**', '.cache/qmltui/src/**', '.cache/qmltui/examples/gallery/**', 'wasm/**') }}
+
+      - name: Install Ninja
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Setup Emscripten 4.0.7
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '4.0.7'
+          actions-cache-folder: emsdk-cache
+
+      - name: Install Qt 6.11.1 Host (linux_gcc_64)
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
+        id: qt-host
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.1'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'linux_gcc_64'
+          cache: true
+
+      - name: Install Qt 6.11.1 WebAssembly (wasm_singlethread)
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
+        id: qt-wasm
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.1'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'wasm_singlethread'
+          cache: true
+
+      - name: Build WebAssembly Playground
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
+        run: |
+          "${{ steps.qt-wasm.outputs.install-dir }}/bin/qt-cmake" \
+            -S wasm -B build-wasm -G Ninja \
+            -DCMAKE_BUILD_TYPE=MinSizeRel \
+            -DQT_HOST_PATH="${{ steps.qt-host.outputs.install-dir }}" \
+            -DQMLTUI_SOURCE_DIR="${{ github.workspace }}/.cache/qmltui"
+          cmake --build build-wasm --parallel
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Sync Docs and Build VitePress Static Site
+        env:
+          QMLTUI_REPO_DIR: ${{ github.workspace }}/.cache/qmltui
+          QMLTUI_APPS_DIR: ${{ github.workspace }}/.cache/qmltui-apps
+          QMLTUI_REQUIRE_WASM: '1'
+          VITEPRESS_BASE: ${{ steps.pages.outputs.base_path || '/' }}
+        run: |
+          npm install --no-package-lock
+          npm run docs:build
+          test -f public/playground/qmltui_playground.wasm
+          test -f public/playground/qmltui_playground.js
+
+      - name: Upload GitHub Pages Artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

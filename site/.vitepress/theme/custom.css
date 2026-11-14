@@ -1,0 +1,84 @@
+:root {
+  --vp-c-brand-1: #00a651;
+  --vp-c-brand-2: #008f45;
+  --vp-c-brand-3: #2cde85;
+  --vp-c-brand-soft: rgba(44, 222, 133, 0.14);
+  --vp-font-family-mono: "JetBrains Mono", "Fira Code", "Cascadia Mono", ui-monospace,
+    SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.dark {
+  --vp-c-brand-1: #2cde85;
+  --vp-c-brand-2: #00ff66;
+  --vp-c-brand-3: #00a651;
+  --vp-c-brand-soft: rgba(44, 222, 133, 0.16);
+  --vp-c-bg: #0d1117;
+  --vp-c-bg-alt: #161b22;
+  --vp-c-bg-elv: #161b22;
+  --vp-c-bg-soft: #161b22;
+}
+
+/* Crisp terminal frame rendering: ensure Unicode box-drawing characters (┌─┐│└─┘)
+   connect vertically and horizontally with zero gaps in browser previews. */
+pre code.language-text,
+.vp-doc div[class*="language-text"] pre,
+.vp-doc div[class*="language-text"] code {
+  line-height: 1.25 !important;
+  font-variant-ligatures: none;
+  letter-spacing: 0;
+}
+
+.vp-doc table {
+  display: table;
+  width: 100%;
+}
+
+/* "▶ Try in Playground" action button on QML code blocks */
+.vp-doc div.language-qml {
+  position: relative;
+}
+
+.vp-doc div.language-qml .qmltui-try-btn {
+  position: absolute;
+  top: 10px;
+  right: 52px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 5px;
+  border: 1px solid rgba(44, 222, 133, 0.35);
+  background: rgba(18, 45, 36, 0.88);
+  color: #2cde85;
+  font-family: var(--vp-font-family-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity 0.15s ease, border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.vp-doc div.language-qml:hover .qmltui-try-btn,
+.vp-doc div.language-qml .qmltui-try-btn:focus-visible {
+  opacity: 1;
+}
+
+.vp-doc div.language-qml .qmltui-try-btn:hover {
+  border-color: #00ff66;
+  background: #122d24;
+  color: #00ff66;
+  text-decoration: none;
+}
+
+/* Balanced 3 + 2 desktop grid when the home page has 5 feature cards */
+@media (min-width: 768px) {
+  .VPFeatures .items:has(> .item:nth-child(5):last-child) > .item:nth-child(-n + 3) {
+    width: calc(100% / 3);
+  }
+
+  .VPFeatures .items:has(> .item:nth-child(5):last-child) > .item:nth-child(n + 4) {
+    width: calc(100% / 2);
+  }
+}

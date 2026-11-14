@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QmlTui Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=IBM+Plex+Mono:ital,wght@0,400;0,700;1,400&family=Inconsolata:wght@400;700&family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&family=Source+Code+Pro:ital,wght@0,400;0,700;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-selected: #12261e;
+    --border: #30363d;
+    --brand: #2cde85;
+    --brand-bright: #00ff66;
+    --text: #c9d1d9;
+    --muted: #8b949e;
+  }
+  html, body { height: 100%; margin: 0; }
+  body { display: grid; grid-template-rows: 2.8rem minmax(0, 1fr) 5.5rem; height: 100vh; overflow: hidden;
+         background: var(--bg); color: var(--text); font: 14px system-ui, -apple-system, sans-serif; }
+  header { display: flex; gap: .55rem; align-items: center; padding: 0 1rem;
+           background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; }
+  header h1 { font-size: .95rem; margin: 0; font-weight: 700; color: var(--brand); letter-spacing: 0.01em; white-space: nowrap; }
+  button, select { background: var(--bg); color: var(--text); border: 1px solid var(--border);
+                   padding: .25rem .6rem; border-radius: 5px; font-size: .8rem; white-space: nowrap; }
+  button:hover, select:hover { border-color: var(--brand); cursor: pointer; }
+  button.primary, button.mode-btn.active { background: var(--surface-selected); border-color: var(--brand); color: var(--brand-bright); font-weight: 600; }
+  .mode-group { display: inline-flex; gap: .35rem; align-items: center; }
+  label, #focus { font-size: .8rem; color: var(--muted); display: flex; align-items: center; gap: .35rem; white-space: nowrap; }
+  #focus b { color: var(--brand-bright); font-family: "JetBrains Mono", ui-monospace, monospace; }
+  #status { margin-left: auto; color: var(--muted); font-size: .8rem; font-family: "JetBrains Mono", ui-monospace, monospace; white-space: nowrap; }
+  /* Both panes take their height from the grid row, never from their content:
+     xterm's fit addon sizes the terminal from the container, so the container
+     must not size itself from the terminal. */
+  main { display: grid; grid-template-columns: minmax(340px, 48%) minmax(0, 1fr); min-height: 0; overflow: hidden; }
+  body.editor-hidden main { grid-template-columns: minmax(0, 1fr); }
+  body.editor-hidden #editor { display: none; }
+  #editor { min-height: 0; height: 100%; overflow: hidden; border-right: 1px solid var(--border); }
+  #editor .cm-editor { height: 100%; font-size: 13px; background: var(--bg); }
+  #editor .cm-scroller {
+    overflow: auto;
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  /* Unified dark scrollbar styling across CodeMirror, autocomplete, xterm, settings, and footer */
+  #editor .cm-scroller::-webkit-scrollbar,
+  .cm-tooltip-autocomplete ul::-webkit-scrollbar,
+  #terminal .xterm-viewport::-webkit-scrollbar,
+  .settings-body::-webkit-scrollbar,
+  footer::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  #editor .cm-scroller::-webkit-scrollbar-track,
+  .cm-tooltip-autocomplete ul::-webkit-scrollbar-track,
+  #terminal .xterm-viewport::-webkit-scrollbar-track,
+  .settings-body::-webkit-scrollbar-track,
+  footer::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  #editor .cm-scroller::-webkit-scrollbar-thumb,
+  .cm-tooltip-autocomplete ul::-webkit-scrollbar-thumb,
+  #terminal .xterm-viewport::-webkit-scrollbar-thumb,
+  .settings-body::-webkit-scrollbar-thumb,
+  footer::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+  }
+  #editor .cm-scroller::-webkit-scrollbar-thumb:hover,
+  .cm-tooltip-autocomplete ul::-webkit-scrollbar-thumb:hover,
+  #terminal .xterm-viewport::-webkit-scrollbar-thumb:hover,
+  .settings-body::-webkit-scrollbar-thumb:hover,
+  footer::-webkit-scrollbar-thumb:hover {
+    background: var(--brand);
+  }
+  #editor .cm-scroller::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  /* Borderless autocomplete popup matching QmlTui aesthetic */
+  .cm-tooltip.cm-tooltip-autocomplete {
+    border: none !important;
+    background: #21262d !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5) !important;
+    border-radius: 0 !important;
+  }
+  .cm-tooltip-autocomplete ul {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .cm-tooltip-autocomplete ul li[aria-selected] {
+    background: #122d24 !important;
+    color: var(--brand-bright) !important;
+  }
+  #terminal { min-height: 0; min-width: 0; height: 100%; overflow: hidden; padding: .5rem; box-sizing: border-box; position: relative; }
+  #terminal .xterm { height: 100%; width: 100%; overflow: hidden; }
+  #terminal .xterm-viewport { overflow-x: hidden !important; overflow-y: auto !important; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  /* Bottom-left Code Drawer handle overlay inside the terminal area */
+  #drawerToggleBtn {
+    position: absolute;
+    bottom: .5rem;
+    left: .5rem;
+    z-index: 30;
+    background: rgba(22, 27, 34, 0.9);
+    border: 1px solid #58a6ff;
+    border-radius: 6px;
+    color: #79c0ff;
+    font-weight: 600;
+    font-size: .76rem;
+    padding: .24rem .65rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  #drawerToggleBtn:hover {
+    border-color: var(--brand-bright);
+    color: var(--brand-bright);
+    background: #122d24;
+  }
+  body.editor-hidden #drawerToggleBtn {
+    background: rgba(18, 45, 36, 0.95);
+    border-color: var(--brand-bright);
+    color: var(--brand-bright);
+    box-shadow: 0 0 12px rgba(0, 255, 102, 0.28);
+  }
+  #previewFallback { display: none; flex-direction: column; align-items: center; justify-content: center;
+                     height: 100%; gap: .8rem; text-align: center; padding: 1rem; box-sizing: border-box; }
+  #previewFallback.active { display: flex; }
+  #previewFallback img { max-width: 100%; max-height: calc(100% - 4.5rem); border-radius: 8px;
+                         border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); }
+  #previewFallback .fallback-note { font-size: .8rem; color: var(--muted); max-width: 640px; line-height: 1.45; }
+  #previewFallback code { background: var(--surface); color: var(--brand); padding: .1rem .35rem; border-radius: 4px; }
+  footer { background: var(--surface); border-top: 1px solid var(--border); overflow: auto; }
+  #problems { list-style: none; margin: 0; padding: .3rem 1rem; font: 12px "JetBrains Mono", ui-monospace, monospace; }
+  #problems li.error { color: #ff7b72; }
+  #problems li.warning { color: #fbbf24; }
+  footer p { margin: 0; padding: .3rem 1rem; font-size: .75rem; color: var(--muted); }
+  /* Terminal Settings Drawer */
+  #settingsPanel {
+    position: fixed;
+    top: 2.8rem;
+    right: 0;
+    width: 340px;
+    max-width: 92vw;
+    max-height: calc(100vh - 2.8rem);
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    box-shadow: -8px 12px 28px rgba(0, 0, 0, 0.55);
+    z-index: 100;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #settingsPanel.open { display: flex; }
+  .settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .65rem .9rem;
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+    color: var(--brand);
+    font-size: .85rem;
+  }
+  .settings-body {
+    padding: .75rem .9rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: .85rem;
+  }
+  .settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+    padding-bottom: .75rem;
+    border-bottom: 1px solid rgba(48, 54, 61, 0.6);
+  }
+  .settings-section:last-child { border-bottom: none; padding-bottom: 0; }
+  .settings-section h3 {
+    margin: 0;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--muted);
+  }
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    font-size: .8rem;
+    color: var(--text);
+  }
+  .settings-row input[type="number"],
+  .settings-row input[type="text"],
+  .settings-row select {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: .22rem .45rem;
+    font-size: .78rem;
+    width: 150px;
+    box-sizing: border-box;
+  }
+  .color-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: .4rem;
+  }
+  .color-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: .2rem .45rem;
+    font-size: .75rem;
+    color: var(--muted);
+  }
+  .ansi-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: .3rem;
+  }
+  .ansi-swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .15rem;
+    font-size: .65rem;
+    color: var(--muted);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+  input[type="color"] {
+    -webkit-appearance: none;
+    appearance: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    width: 26px;
+    height: 22px;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+  input[type="color"]::-webkit-color-swatch-wrapper { padding: 1px; }
+  input[type="color"]::-webkit-color-swatch { border: none; border-radius: 2px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>QmlTui</h1>
+  <div class="mode-group">
+    <button id="btnPlayground" class="mode-btn active" title="Write a full root Terminal {} application (AltScreen or Inline)">▶ Try It Yourself</button>
+    <button id="btnGallery" class="mode-btn" title="Browse 44 interactive component examples in the Gallery Grid">▦ Gallery Grid</button>
+  </div>
+  <label for="exampleSelect">Template / Example:
+    <select id="exampleSelect" title="Choose a starter template or gallery component example">
+      <optgroup label="Try It Yourself (Root Terminal)">
+        <option value="__playground__">Main.qml (AltScreen App)</option>
+        <option value="__inline__">Main.qml (Inline &amp; Scrollback)</option>
+      </optgroup>
+      <optgroup label="Component Gallery">
+        <option value="">Gallery Grid (All Components)</option>
+      </optgroup>
+    </select>
+  </label>
+  <span id="focus"><b id="focusId">Main.qml</b></span>
+  <button id="run" class="primary" title="Compile and run in terminal (Ctrl+Enter)">▶ Run</button>
+  <label><input type="checkbox" id="autorun" checked> run on edit</label>
+  <button id="resetCode" title="Reset editor to initial template or example source">Reset</button>
+  <button id="share" title="Copy a shareable URL with your current QML code">Share URL</button>
+  <button id="toggleSettings" title="Configure xterm.js font, cursor, and default color palette">⚙ Terminal</button>
+  <span id="status"></span>
+</header>
+<aside id="settingsPanel" aria-label="xterm.js Terminal Settings">
+  <div class="settings-header">
+    <span>⚙ xterm.js Terminal Settings</span>
+    <button id="closeSettings" title="Close settings">×</button>
+  </div>
+  <div class="settings-body">
+    <div class="settings-section">
+      <h3>Color Theme &amp; Default Palette</h3>
+      <div class="settings-row">
+        <span>Preset</span>
+        <select id="cfgThemePreset">
+          <option value="qmltui-dark">QmlTui Dark (Default)</option>
+          <option value="catppuccin-mocha">Catppuccin Mocha</option>
+          <option value="tokyo-night">Tokyo Night</option>
+          <option value="gruvbox-dark">Gruvbox Dark</option>
+          <option value="dracula">Dracula</option>
+          <option value="solarized-dark">Solarized Dark</option>
+          <option value="nord">Nord</option>
+          <option value="github-light">GitHub Light</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div class="color-grid-4">
+        <label class="color-item"><span>Bg</span><input type="color" id="cfgBg" title="Terminal default background"></label>
+        <label class="color-item"><span>Fg</span><input type="color" id="cfgFg" title="Terminal default foreground"></label>
+        <label class="color-item"><span>Cursor</span><input type="color" id="cfgCursor" title="Terminal cursor color"></label>
+        <label class="color-item"><span>Select</span><input type="color" id="cfgSelection" title="Selection background color"></label>
+      </div>
+      <div style="font-size:.72rem; color:var(--muted); margin-top:.2rem;">ANSI Palette (0–7 Normal, 8–15 Bright)</div>
+      <div id="ansiGrid" class="ansi-grid"></div>
+    </div>
+
+    <div class="settings-section">
+      <h3>Typography</h3>
+      <div class="settings-row">
+        <span>Font Family</span>
+        <select id="cfgFontPreset">
+          <option value='"JetBrains Mono", ui-monospace, monospace'>JetBrains Mono (Default)</option>
+          <option value='"Fira Code", ui-monospace, monospace'>Fira Code</option>
+          <option value='"IBM Plex Mono", ui-monospace, monospace'>IBM Plex Mono</option>
+          <option value='"Source Code Pro", ui-monospace, monospace'>Source Code Pro</option>
+          <option value='"Ubuntu Mono", ui-monospace, monospace'>Ubuntu Mono</option>
+          <option value='"Space Mono", ui-monospace, monospace'>Space Mono</option>
+          <option value='"Inconsolata", ui-monospace, monospace'>Inconsolata</option>
+          <option value='ui-monospace, Menlo, Monaco, Consolas, monospace'>System Monospace</option>
+          <option value="custom">Custom…</option>
+        </select>
+      </div>
+      <div class="settings-row" id="cfgCustomFontRow" style="display:none;">
+        <span>Custom Font</span>
+        <input type="text" id="cfgFontCustom" placeholder='"My Font", monospace'>
+      </div>
+      <div class="settings-row">
+        <span>Font Size (px)</span>
+        <input type="number" id="cfgFontSize" min="10" max="28" step="1" value="15">
+      </div>
+      <div class="settings-row">
+        <span>Line Height</span>
+        <input type="number" id="cfgLineHeight" min="1.0" max="1.8" step="0.05" value="1.0">
+      </div>
+      <div class="settings-row">
+        <span>Letter Spacing (px)</span>
+        <input type="number" id="cfgLetterSpacing" min="-2" max="6" step="0.5" value="0">
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>Cursor &amp; Scrollback</h3>
+      <div class="settings-row">
+        <span>Cursor Style</span>
+        <select id="cfgCursorStyle">
+          <option value="block">Block (█)</option>
+          <option value="underline">Underline (_)</option>
+          <option value="bar">Bar (|)</option>
+        </select>
+      </div>
+      <div class="settings-row">
+        <span>Cursor Blink</span>
+        <input type="checkbox" id="cfgCursorBlink">
+      </div>
+      <div class="settings-row">
+        <span>Scrollback Lines</span>
+        <input type="number" id="cfgScrollback" min="0" max="50000" step="100" value="1000">
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <button id="resetSettings" style="width:100%;">Reset Terminal Settings to Default</button>
+    </div>
+  </div>
+</aside>
+<main>
+  <div id="editor"></div>
+  <div id="terminal">
+    <button id="drawerToggleBtn" title="Toggle QML Code Drawer">◀ Hide Code</button>
+    <div id="previewFallback">
+      <img id="previewGif" alt="Recorded terminal preview">
+      <div class="fallback-note">
+        Showing recorded terminal preview (<span id="previewLabel">gallery-tour.gif</span>).
+        When built with Qt for WebAssembly (<code>qt-cmake -S examples/wasm -B build-wasm</code>),
+        this pane runs the live interactive WebAssembly terminal.
+      </div>
+    </div>
+  </div>
+</main>
+<footer>
+  <ul id="problems"></ul>
+  <p>Write a root <code>Terminal {}</code> app on the left (both <code>Terminal.AltScreen</code> and <code>Terminal.Inline</code> with <code>Scrollback</code> run natively on the right), or switch to the Gallery Grid to inspect and edit individual components.
+     Runtime: Qt for WebAssembly (GPLv3 or commercial in browser). QmlTui library: LGPLv3; examples: BSD-3-Clause.</p>
+</footer>
+<!-- One exact version per package, and esm.sh's external mode (the * prefix)
+     keeps every inter-package import bare so this map resolves them all to the
+     same URL. Without it CodeMirror loads twice and its extensions stop composing. -->
+<script type="importmap">
+{ "imports": {
+  "codemirror":                 "https://esm.sh/*codemirror@6.0.2",
+  "@codemirror/state":          "https://esm.sh/*@codemirror/state@6.7.4",
+  "@codemirror/view":           "https://esm.sh/*@codemirror/view@6.43.11",
+  "@codemirror/language":       "https://esm.sh/*@codemirror/language@6.12.4",
+  "@codemirror/commands":       "https://esm.sh/*@codemirror/commands@6.11.0",
+  "@codemirror/search":         "https://esm.sh/*@codemirror/search@6.7.2",
+  "@codemirror/autocomplete":   "https://esm.sh/*@codemirror/autocomplete@6.20.3",
+  "@codemirror/lint":           "https://esm.sh/*@codemirror/lint@6.9.7",
+  "@codemirror/lang-javascript":"https://esm.sh/*@codemirror/lang-javascript@6.2.5",
+  "@codemirror/theme-one-dark": "https://esm.sh/*@codemirror/theme-one-dark@6.1.3",
+  "@lezer/common":              "https://esm.sh/*@lezer/common@1.5.2",
+  "@lezer/highlight":           "https://esm.sh/*@lezer/highlight@1.2.3",
+  "@lezer/lr":                  "https://esm.sh/*@lezer/lr@1.4.10",
+  "@lezer/javascript":          "https://esm.sh/*@lezer/javascript@1.5.4",
+  "style-mod":                  "https://esm.sh/*style-mod@4.1.3",
+  "w3c-keyname":                "https://esm.sh/*w3c-keyname@2.2.8",
+  "crelt":                      "https://esm.sh/*crelt@1.0.7",
+  "@marijn/find-cluster-break": "https://esm.sh/*@marijn/find-cluster-break@1.0.4"
+} }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-unicode-graphemes@0.4.0/lib/addon-unicode-graphemes.min.js"></script>
+<script src="qmltui_playground.js" onerror="window.__qmltuiNoWasmBundle = true"></script>
+<script type="module" src="qmltui-playground.js"></script>
+</body>
+</html>
