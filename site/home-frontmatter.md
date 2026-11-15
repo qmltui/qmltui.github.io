@@ -1,5 +1,12 @@
 ---
-layout: home
+layout: doc
+isHomeOverview: true
+pageClass: qmltui-home-page
+aside: false
+prev: false
+next:
+  text: Getting Started Tutorial
+  link: /getting-started
 title: QmlTui
 titleTemplate: Retained-Mode Terminal UI Framework for Qt 6
 
@@ -51,4 +58,8 @@ features:
     details: Drive keyboard and mouse input deterministically, step a virtual clock, assert committed text and style snapshots in CTest, and record Asciinema .cast files.
     link: ./guides/testing
     linkText: Testing guide
+  - title: Agentic Closed-Loop Workflow
+    details: Give coding agents plain-text UTF-8 frame captures, SGR style diffs, and structured JSON diagnostics on QCoreApplication without a TTY, plus bundled QML and Runner skills.
+    link: ./guides/agentic-development
+    linkText: Agentic workflow
 ---

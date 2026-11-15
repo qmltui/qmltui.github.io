@@ -38,13 +38,13 @@ Multi-stage `Terminal.Inline` CLI package installer (`qpm`) with an interactive 
 
 High-density telemetry dashboards backed by C++ [`QAbstractTableModel`](guides/models.md) and `QSortFilterProxyModel` pipelines, virtualized tables, and sub-cell Braille charts.
 
-### `btop`
+### `qtop`
 
-System resource monitor featuring [`Canvas.Braille`](qml-types/canvas.md) CPU history graphs, per-core meters, memory and disk bars, network throughput sparklines, a sortable process [`TableView`](qml-types/tableview.md), and [`Behavior`](qml-types/behavior.md)-animated panel collapsing.
+[`btop++`](https://github.com/aristocratos/btop)-inspired UI layout study recreating Braille CPU history graphs ([`Canvas.Braille`](qml-types/canvas.md)), per-core meters, memory and disk bars, network throughput sparklines, a sortable `QAbstractTableModel` process [`TableView`](qml-types/tableview.md), and [`Behavior`](qml-types/behavior.md)-animated panel collapsing in **~770 lines of declarative QML** instead of manual ANSI cursor math.
 
-- **Source**: [`apps/btop`]({{APPS_REPO_URL}}/tree/{{APPS_COMMIT}}/apps/btop)
+- **Source**: [`apps/qtop`]({{APPS_REPO_URL}}/tree/{{APPS_COMMIT}}/apps/qtop)
 
-![btop showcase](assets/showcase/btop.gif)
+![qtop showcase](assets/showcase/qtop.gif)
 
 ### `container_fleet`
 
@@ -100,7 +100,7 @@ Real-time vector plotting dashboard with high-resolution `Canvas.Braille` oscill
 
 ### `industrial_plc_hmi`
 
-Industrial PLC controller and SCADA HMI operator console with telemetry gauges, Braille temperature trend chart, actuator LEDs, alarm history, hardware diagnostics, safety threshold settings, and blinking fault interlocks.
+ISA-101 industrial PLC controller and SCADA HMI operator console featuring rounded [`Panel`](qml-types/panel.md) telemetry gauges, multi-trace `Canvas.Braille` trend scope, animated P&ID reactor mimic, dimmed [`Popup`](qml-types/popup.md) safety interlocks, [`TableView`](qml-types/tableview.md) audit log, modular I/O rack diagnostics, and 3 switchable SCADA skins (`ISA-SLATE`, `AMBER CRT`, `PHOSPHOR`).
 
 - **Source**: [`apps/industrial_plc_hmi`]({{APPS_REPO_URL}}/tree/{{APPS_COMMIT}}/apps/industrial_plc_hmi)
 

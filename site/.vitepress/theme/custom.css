@@ -72,14 +72,222 @@ pre code.language-text,
   text-decoration: none;
 }
 
-/* Keep the interactive showcase visible near the initial viewport fold */
-.VPHome .VPHero {
-  padding-bottom: 32px;
+/* Keep the top navigation bar pinned at the top across all viewport widths */
+.VPNav {
+  position: sticky !important;
+  top: var(--vp-layout-top-height, 0px);
+  background-color: var(--vp-nav-bg-color);
 }
 
-@media (min-width: 640px) {
-  .VPHome .VPHero {
-    padding-bottom: 40px;
+@media (min-width: 960px) {
+  .VPNav {
+    position: fixed !important;
+  }
+
+  .VPNavBar .content-body {
+    background-color: var(--vp-nav-bg-color) !important;
+  }
+}
+
+/* Home Overview page (layout: doc + persistent left sidebar) */
+.qmltui-home-page .VPDoc .container,
+.qmltui-home-page .VPDoc .content,
+.qmltui-home-page .VPDoc .content-container {
+  max-width: 1060px !important;
+}
+
+.qmltui-home-overview-header {
+  margin-bottom: 40px;
+}
+
+.qmltui-home-overview-header .VPHero {
+  margin-top: 0 !important;
+  padding: 8px 0 36px !important;
+}
+
+.qmltui-home-overview-header .VPFeatures {
+  padding: 0 !important;
+}
+
+@media (min-width: 960px) {
+  .qmltui-home-page .VPFooter.has-sidebar {
+    display: block;
+    padding-left: var(--vp-sidebar-width);
+  }
+}
+
+@media (min-width: 1440px) {
+  .qmltui-home-page .VPFooter.has-sidebar {
+    padding-left: calc((100vw - var(--vp-layout-max-width)) / 2 + var(--vp-sidebar-width));
+  }
+}
+
+/* User-collapsible desktop sidebar (`Ctrl+\` or top-left sidebar button) */
+@media (min-width: 960px) {
+  .VPSidebar,
+  .VPContent.has-sidebar,
+  .VPNavBar.has-sidebar .content,
+  .VPNavBar.has-sidebar .divider,
+  .qmltui-home-page .VPFooter.has-sidebar {
+    transition: transform 0.2s ease, opacity 0.2s ease, padding-left 0.2s ease;
+  }
+
+  html.qmltui-sidebar-collapsed .VPSidebar {
+    transform: translateX(-100%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  html.qmltui-sidebar-collapsed .VPContent.has-sidebar {
+    padding-left: 0 !important;
+  }
+
+  html.qmltui-sidebar-collapsed .VPNavBar.has-sidebar .title {
+    position: static !important;
+    width: auto !important;
+    padding-left: 32px !important;
+    padding-right: 16px !important;
+  }
+
+  html.qmltui-sidebar-collapsed .VPNavBar.has-sidebar .content {
+    padding-left: 0 !important;
+  }
+
+  html.qmltui-sidebar-collapsed .VPNavBar.has-sidebar .divider,
+  html.qmltui-sidebar-collapsed .VPLocalNav.has-sidebar,
+  html.qmltui-sidebar-collapsed .qmltui-home-page .VPFooter.has-sidebar {
+    padding-left: 0 !important;
+  }
+
+  html.qmltui-sidebar-collapsed .VPNavBar {
+    background-color: var(--vp-nav-bg-color) !important;
+  }
+}
+
+@media (min-width: 1440px) {
+  html.qmltui-sidebar-collapsed .VPNavBar.has-sidebar .title {
+    padding-left: calc((100vw - var(--vp-layout-max-width)) / 2 + 32px) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .VPSidebar,
+  .VPContent.has-sidebar,
+  .VPNavBar.has-sidebar .content,
+  .VPNavBar.has-sidebar .divider,
+  .qmltui-home-page .VPFooter.has-sidebar {
+    transition: none !important;
+  }
+}
+
+/* Terminal window chrome around recorded showcase & component GIFs */
+.vp-doc .qmltui-term-gif {
+  display: inline-flex;
+  flex-direction: column;
+  max-width: 100%;
+  margin: 14px 0;
+  border-radius: 10px;
+  border: 1px solid rgba(139, 148, 158, 0.32);
+  background: #0d1117;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+  vertical-align: top;
+  transition: border-color 0.15s ease;
+}
+
+.vp-doc a:has(> .qmltui-term-gif) {
+  display: inline-block;
+  max-width: 100%;
+  text-decoration: none !important;
+}
+
+.vp-doc a:hover > .qmltui-term-gif {
+  border-color: rgba(44, 222, 133, 0.65);
+}
+
+.vp-doc .qmltui-term-gif-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  user-select: none;
+}
+
+.vp-doc .qmltui-term-gif-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.vp-doc .qmltui-term-gif-dots .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.vp-doc .qmltui-term-gif-dots .dot-close {
+  background: #ff5f56;
+}
+
+.vp-doc .qmltui-term-gif-dots .dot-min {
+  background: #ffbd2e;
+}
+
+.vp-doc .qmltui-term-gif-dots .dot-max {
+  background: #27c93f;
+}
+
+.vp-doc .qmltui-term-gif-cmd {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #c9d1d9 !important;
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.78rem !important;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vp-doc .qmltui-term-gif-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid #30363d;
+  background: #21262d;
+  color: #8b949e;
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.vp-doc .qmltui-term-gif-body {
+  display: block;
+  padding: 6px;
+  background: #121314;
+  line-height: 0;
+}
+
+.vp-doc .qmltui-term-gif-body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 !important;
+  border-radius: 4px;
+}
+
+@media (max-width: 639px) {
+  .vp-doc .qmltui-term-gif-badge {
+    display: none;
   }
 }
 

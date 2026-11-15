@@ -149,7 +149,7 @@ function rewriteRepoRelativeLinks(markdown, relFileDir, meta) {
     }
     if (resolvedFromDocs.startsWith('../')) {
       const repoRel = resolvedFromDocs.replace(/^(\.\.\/)+/, '')
-      if (/^(?:examples\/|scripts\/|src\/|CMakeLists\.txt$|LICENSE(?:\.md)?$)/.test(repoRel)) {
+      if (/^(?:\.agents\/|cmake\/|examples\/|scripts\/|src\/|AGENTS\.md$|CMakeLists\.txt$|LICENSE(?:\.md)?$)/.test(repoRel)) {
         const targetPath = path.join(meta.qmltuiDir, repoRel)
         const isDir = fs.existsSync(targetPath) && fs.statSync(targetPath).isDirectory()
         const kind = isDir ? 'tree' : 'blob'
@@ -252,7 +252,7 @@ function upgradeHomeReadme(rawReadmePath, homeFrontmatter) {
   )
 
   readmeBody = readmeBody.replace(
-    'and 12 complete showcase applications (`btop`, `agent_stream`, `file_manager`, `package_manager`, `audio_player`, and more) in [qmltui/apps](https://github.com/qmltui/apps).',
+    'and 12 complete showcase applications (`qtop`, `agent_stream`, `file_manager`, `package_manager`, `audio_player`, and more) in [qmltui/apps](https://github.com/qmltui/apps).',
     'and 12 complete applications on the [Application Showcase](showcase.md) page (source in [qmltui/apps](https://github.com/qmltui/apps)).'
   )
 

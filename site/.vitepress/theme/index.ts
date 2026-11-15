@@ -1,9 +1,10 @@
-import DefaultTheme from 'vitepress/theme'
-import { useRoute, withBase } from 'vitepress'
+import DefaultTheme, { VPHomeFeatures, VPHomeHero } from 'vitepress/theme'
+import { useData, useRoute, withBase } from 'vitepress'
 import type { Theme } from 'vitepress'
-import { h, nextTick, onMounted, watch } from 'vue'
+import { defineComponent, h, nextTick, onMounted, watch } from 'vue'
 import HomeShowcase from './HomeShowcase.vue'
 import PlaygroundPage from './PlaygroundPage.vue'
+import SidebarToggle from './SidebarToggle.vue'
 import './custom.css'
 
 function toBase64Url(str: string): string {
@@ -149,12 +150,29 @@ function attachTryInPlaygroundButtons(): void {
   })
 }
 
+const CustomLayout = defineComponent({
+  name: 'QmlTuiLayout',
+  setup() {
+    const { frontmatter } = useData()
+    return () =>
+      h(DefaultTheme.Layout, null, {
+        'nav-bar-title-before': () => h(SidebarToggle),
+        'home-features-after': () => h(HomeShowcase),
+        'doc-before': () =>
+          frontmatter.value.isHomeOverview
+            ? h('div', { class: 'qmltui-home-overview-header' }, [
+                h(VPHomeHero),
+                h(VPHomeFeatures),
+                h(HomeShowcase)
+              ])
+            : null
+      })
+  }
+})
+
 export default {
   extends: DefaultTheme,
-  Layout: () =>
-    h(DefaultTheme.Layout, null, {
-      'home-hero-after': () => h(HomeShowcase)
-    }),
+  Layout: CustomLayout,
   enhanceApp({ app }) {
     app.component('PlaygroundPage', PlaygroundPage)
   },

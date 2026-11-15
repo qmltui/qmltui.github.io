@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useData, withBase } from 'vitepress'
 
 interface PrimitiveChip {
   name: string
   link: string
+}
+
+interface InspirationLink {
+  label: string
+  url: string
 }
 
 interface ShowcaseApp {
@@ -17,6 +22,7 @@ interface ShowcaseApp {
   gif: string
   width: number
   height: number
+  inspiration?: InspirationLink
   summary: string
   primitives: PrimitiveChip[]
 }
@@ -29,17 +35,21 @@ interface AppsMeta {
 
 const ITEMS: ShowcaseApp[] = [
   {
-    id: 'btop',
-    slug: 'btop',
+    id: 'qtop',
+    slug: 'qtop',
     label: 'System Monitor',
     mode: 'AltScreen',
     modeIcon: '◆',
     modeKind: 'alt',
-    gif: '/assets/showcase/btop.gif',
+    gif: '/assets/showcase/qtop.gif',
     width: 1286,
     height: 963,
+    inspiration: {
+      label: 'aristocratos/btop',
+      url: 'https://github.com/aristocratos/btop'
+    },
     summary:
-      'System resource monitor with Braille CPU history graphs, per-core meters, sortable QAbstractTableModel process TableView, sparklines, and animated panel collapsing.',
+      'UI layout study recreating Braille CPU history graphs, per-core meters, animated collapsible panels, and a sortable QAbstractTableModel process TableView in ~770 lines of QML.',
     primitives: [
       { name: 'Canvas.Braille', link: '/qml-types/canvas.html' },
       { name: 'TableView', link: '/qml-types/tableview.html' },
@@ -134,12 +144,12 @@ const ITEMS: ShowcaseApp[] = [
     width: 1075,
     height: 784,
     summary:
-      'Operator SCADA console with telemetry gauges, Braille temperature trend chart, actuator interlocks, alarm history table, and declarative blinking fault states.',
+      'ISA-101 operator SCADA console with telemetry gauges, multi-trace Braille scope, animated P&ID reactor mimic, modal safety interlocks, TableView audit log, I/O rack diagnostics, and 3 SCADA skins.',
     primitives: [
       { name: 'Canvas.Braille', link: '/qml-types/canvas.html' },
-      { name: 'StateGroup', link: '/qml-types/stategroup.html' },
-      { name: 'TabBar', link: '/qml-types/tabbar.html' },
-      { name: 'Dialog', link: '/qml-types/dialog.html' }
+      { name: 'Panel', link: '/qml-types/panel.html' },
+      { name: 'TableView', link: '/qml-types/tableview.html' },
+      { name: 'Popup', link: '/qml-types/popup.html' }
     ]
   }
 ]
@@ -151,6 +161,13 @@ const tabRefs = ref<HTMLButtonElement[]>([])
 const stageImgRef = ref<HTMLImageElement | null>(null)
 const loadedGifs = ref<Record<string, boolean>>({})
 const failedGifs = ref<Record<string, boolean>>({})
+
+// Auto-rotation state: runs automatically until the user interacts with controls
+const clientMounted = ref(false)
+const autoRotateEnabled = ref(true)
+const isHovered = ref(false)
+const isDocHidden = ref(false)
+const cycleKey = ref(0)
 
 const appsMeta = computed<AppsMeta>(() => {
   const raw = (theme.value as Record<string, unknown>)?.qmltuiApps as AppsMeta | undefined
@@ -166,6 +183,15 @@ const currentGifUrl = computed(() => withBase(currentApp.value.gif))
 const isCurrentLoaded = computed(() => Boolean(loadedGifs.value[currentApp.value.id]))
 const isCurrentFailed = computed(
   () => !appsMeta.value.staged || Boolean(failedGifs.value[currentApp.value.id])
+)
+
+const isRotationPaused = computed(
+  () =>
+    !clientMounted.value ||
+    !autoRotateEnabled.value ||
+    isHovered.value ||
+    isDocHidden.value ||
+    (!isCurrentLoaded.value && !isCurrentFailed.value)
 )
 
 const currentSourceUrl = computed(
@@ -186,10 +212,11 @@ function syncImageCompletion(): void {
   }
 }
 
-function selectTab(index: number, focusElement = false): void {
+function setTab(index: number, focusElement = false): void {
   const count = ITEMS.length
   const normalized = ((index % count) + count) % count
   activeIndex.value = normalized
+  cycleKey.value++
   nextTick(() => {
     syncImageCompletion()
     if (focusElement) {
@@ -198,19 +225,36 @@ function selectTab(index: number, focusElement = false): void {
   })
 }
 
+function handleUserSelectTab(index: number, focusElement = false): void {
+  autoRotateEnabled.value = false
+  setTab(index, focusElement)
+}
+
+function handleAutoAdvance(): void {
+  if (!autoRotateEnabled.value) return
+  setTab(activeIndex.value + 1, false)
+}
+
+function toggleAutoRotate(): void {
+  autoRotateEnabled.value = !autoRotateEnabled.value
+  if (autoRotateEnabled.value) {
+    cycleKey.value++
+  }
+}
+
 function handleTabKeydown(event: KeyboardEvent, index: number): void {
   if (event.key === 'ArrowRight') {
     event.preventDefault()
-    selectTab(index + 1, true)
+    handleUserSelectTab(index + 1, true)
   } else if (event.key === 'ArrowLeft') {
     event.preventDefault()
-    selectTab(index - 1, true)
+    handleUserSelectTab(index - 1, true)
   } else if (event.key === 'Home') {
     event.preventDefault()
-    selectTab(0, true)
+    handleUserSelectTab(0, true)
   } else if (event.key === 'End') {
     event.preventDefault()
-    selectTab(ITEMS.length - 1, true)
+    handleUserSelectTab(ITEMS.length - 1, true)
   }
 }
 
@@ -222,15 +266,39 @@ function markFailed(id: string): void {
   failedGifs.value[id] = true
 }
 
+function handleVisibilityChange(): void {
+  if (typeof document !== 'undefined') {
+    isDocHidden.value = document.hidden
+  }
+}
+
 onMounted(() => {
+  clientMounted.value = true
+  if (
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ) {
+    autoRotateEnabled.value = false
+  }
+  handleVisibilityChange()
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+  }
   syncImageCompletion()
+})
+
+onBeforeUnmount(() => {
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }
 })
 </script>
 
 <template>
   <section
-    v-if="frontmatter.layout === 'home'"
+    v-if="frontmatter.layout === 'home' || frontmatter.isHomeOverview"
     class="qmltui-home-showcase"
+    :class="{ 'in-doc-overview': Boolean(frontmatter.isHomeOverview) }"
     aria-labelledby="qmltui-showcase-heading"
   >
     <div class="showcase-container">
@@ -242,9 +310,27 @@ onMounted(() => {
             tools running natively in the terminal.
           </p>
         </div>
-        <a :href="allShowcaseUrl" class="showcase-all-link">
-          Browse all 12 apps <span aria-hidden="true">→</span>
-        </a>
+
+        <div class="showcase-header-actions">
+          <button
+            type="button"
+            class="autorotate-btn"
+            :aria-pressed="autoRotateEnabled"
+            :title="
+              autoRotateEnabled
+                ? 'Pause automatic showcase rotation'
+                : 'Resume automatic showcase rotation'
+            "
+            @click="toggleAutoRotate"
+          >
+            <span aria-hidden="true">{{ autoRotateEnabled ? '⏸' : '▶' }}</span>
+            <span>{{ autoRotateEnabled ? 'Auto' : 'Paused' }}</span>
+          </button>
+
+          <a :href="allShowcaseUrl" class="showcase-all-link">
+            Browse all 12 apps <span aria-hidden="true">→</span>
+          </a>
+        </div>
       </div>
 
       <div class="showcase-tablist" role="tablist" aria-label="Featured QmlTui applications">
@@ -260,11 +346,19 @@ onMounted(() => {
           :aria-selected="idx === activeIndex"
           :aria-controls="`showcase-panel-${item.id}`"
           :tabindex="idx === activeIndex ? 0 : -1"
-          @click="selectTab(idx)"
+          @click="handleUserSelectTab(idx)"
           @keydown="handleTabKeydown($event, idx)"
         >
           <span class="tab-label">{{ item.label }}</span>
           <code class="tab-cmd">{{ item.id }}</code>
+          <span
+            v-if="idx === activeIndex && clientMounted && autoRotateEnabled"
+            :key="`${item.id}-${cycleKey}`"
+            class="tab-progress"
+            :class="{ paused: isRotationPaused }"
+            aria-hidden="true"
+            @animationend.self="handleAutoAdvance"
+          />
         </button>
       </div>
 
@@ -273,6 +367,8 @@ onMounted(() => {
         role="tabpanel"
         class="terminal-window"
         :aria-labelledby="`showcase-tab-${currentApp.id}`"
+        @mouseenter="isHovered = true"
+        @mouseleave="isHovered = false"
       >
         <div class="terminal-chrome">
           <div class="chrome-left">
@@ -281,7 +377,9 @@ onMounted(() => {
               <span class="dot dot-min" />
               <span class="dot dot-max" />
             </span>
-            <code class="chrome-command">$ ./build/apps/{{ currentApp.id }}/{{ currentApp.id }}</code>
+            <code class="chrome-command">
+              $ ./build/apps/{{ currentApp.id }}/qmltui_{{ currentApp.id }}
+            </code>
             <span class="mode-badge" :class="`mode-${currentApp.modeKind}`">
               <span aria-hidden="true">{{ currentApp.modeIcon }}</span>
               {{ currentApp.mode }}
@@ -333,7 +431,21 @@ onMounted(() => {
         </div>
 
         <div class="terminal-footer">
-          <p class="footer-summary">{{ currentApp.summary }}</p>
+          <p class="footer-summary">
+            <template v-if="currentApp.inspiration">
+              Inspired by
+              <a
+                :href="currentApp.inspiration.url"
+                target="_blank"
+                rel="noopener"
+                class="inspiration-link"
+              >
+                {{ currentApp.inspiration.label }} <span aria-hidden="true">↗</span>
+              </a>
+              —
+            </template>
+            {{ currentApp.summary }}
+          </p>
           <div class="footer-chips" aria-label="QmlTui types used">
             <a
               v-for="chip in currentApp.primitives"
@@ -353,20 +465,35 @@ onMounted(() => {
 <style scoped>
 .qmltui-home-showcase {
   padding: 0 24px;
-  margin: 0 0 48px;
+  margin: 48px 0;
+}
+
+.qmltui-home-showcase.in-doc-overview {
+  padding: 0;
+  margin: 40px 0 0;
 }
 
 @media (min-width: 640px) {
   .qmltui-home-showcase {
     padding: 0 48px;
-    margin-bottom: 56px;
+    margin: 56px 0;
+  }
+
+  .qmltui-home-showcase.in-doc-overview {
+    padding: 0;
+    margin: 48px 0 0;
   }
 }
 
 @media (min-width: 960px) {
   .qmltui-home-showcase {
     padding: 0 64px;
-    margin-bottom: 64px;
+    margin: 64px 0;
+  }
+
+  .qmltui-home-showcase.in-doc-overview {
+    padding: 0;
+    margin: 48px 0 0;
   }
 }
 
@@ -404,6 +531,39 @@ onMounted(() => {
   color: var(--vp-c-text-2);
 }
 
+.showcase-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.autorotate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-2);
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.autorotate-btn:hover {
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-text-1);
+}
+
+.autorotate-btn:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+}
+
 .showcase-all-link {
   display: inline-flex;
   align-items: center;
@@ -427,21 +587,22 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-/* Tab Bar */
+/* Tab Bar: wrap cleanly so button labels and command badges are never cropped */
 .showcase-tablist {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  overflow-x: auto;
-  padding: 2px 2px 12px;
-  scrollbar-width: thin;
+  padding: 2px 0 12px;
 }
 
 .showcase-tab {
+  position: relative;
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 8px;
-  min-height: 42px;
-  padding: 6px 14px;
+  min-height: 40px;
+  padding: 6px 13px;
   border-radius: 8px;
   border: 1px solid var(--vp-c-divider);
   background: var(--vp-c-bg-soft);
@@ -482,6 +643,31 @@ onMounted(() => {
 .showcase-tab.active .tab-cmd {
   background: rgba(44, 222, 133, 0.18);
   color: var(--vp-c-brand-1);
+}
+
+.tab-progress {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--vp-c-brand-1);
+  transform-origin: left center;
+  animation: showcase-tab-progress 7s linear forwards;
+}
+
+.tab-progress.paused {
+  animation-play-state: paused;
+}
+
+@keyframes showcase-tab-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /* Terminal Window Card */
@@ -679,10 +865,28 @@ onMounted(() => {
 .footer-summary {
   margin: 0;
   flex: 1 1 360px;
-  max-width: 72ch;
+  max-width: 74ch;
   font-size: 0.875rem;
   line-height: 1.5;
   color: #c9d1d9;
+}
+
+.inspiration-link {
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.8125rem;
+  color: #2cde85;
+  text-decoration: none;
+}
+
+.inspiration-link:hover {
+  color: #00ff66;
+  text-decoration: underline;
+}
+
+.inspiration-link:focus-visible {
+  outline: 2px solid #2cde85;
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 
 .footer-chips {
@@ -730,10 +934,15 @@ onMounted(() => {
 
 @media (prefers-reduced-motion: reduce) {
   .showcase-tab,
+  .autorotate-btn,
   .chrome-link,
   .stage-gif,
   .primitive-chip {
     transition: none;
+  }
+
+  .tab-progress {
+    animation: none;
   }
 }
 </style>

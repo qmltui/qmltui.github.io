@@ -98,6 +98,51 @@ function detectBase(): string {
   return '/'
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+const RECIPE_TARGETS: Record<string, string> = {
+  big_text: 'qmltui_big_text_demo',
+  calendar: 'qmltui_calendar_demo',
+  inline_mode: 'qmltui_inline_repl_demo',
+  standard_item_delegate: 'qmltui_standard_item_delegate_demo',
+  status_badge: 'qmltui_status_badge_demo',
+  text_area_highlighting: 'qmltui_text_area_highlighting_demo'
+}
+
+function deriveTerminalCommand(rawSrc: string): string {
+  const clean = rawSrc.split(/[?#]/)[0] || ''
+  const showcaseMatch = clean.match(/assets\/showcase\/([a-z0-9_]+)\.gif$/i)
+  if (showcaseMatch) {
+    return `$ ./qmltui_${showcaseMatch[1]}`
+  }
+  if (/gallery-tour\.gif$/i.test(clean)) {
+    return '$ ./qmltui_gallery'
+  }
+  if (/hello-world\.gif$/i.test(clean)) {
+    return '$ ./hello_qmltui'
+  }
+  const compMatch = clean.match(/assets\/casts\/components\/([a-z0-9_]+)\.gif$/i)
+  if (compMatch) {
+    const stem = compMatch[1]
+    if (RECIPE_TARGETS[stem]) {
+      return `$ ./${RECIPE_TARGETS[stem]}`
+    }
+    const pascal = stem
+      .split('_')
+      .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : ''))
+      .join('')
+    return `$ ./qmltui_gallery --example ${pascal}`
+  }
+  const fallback = clean.split('/').pop()?.replace(/\.gif$/i, '') || 'app'
+  return `$ ./${fallback}`
+}
+
 const meta = loadBuildMeta()
 const siteBase = detectBase()
 
@@ -132,6 +177,30 @@ export default defineConfig({
         }
         return html
       }
+
+      const defaultImage = md.renderer.rules.image!
+      md.renderer.rules.image = (tokens, idx, options, env, self) => {
+        const imgHtml = defaultImage(tokens, idx, options, env, self)
+        const rawSrc = tokens[idx]?.attrGet('src') || ''
+        if (!/(?:^|\/)assets\/(?:casts|showcase)\/[^?#]+\.gif(?:[?#].*)?$/i.test(rawSrc)) {
+          return imgHtml
+        }
+        const cmd = escapeHtml(deriveTerminalCommand(rawSrc))
+        return (
+          `<span class="qmltui-term-gif">` +
+          `<span class="qmltui-term-gif-bar" aria-hidden="true">` +
+          `<span class="qmltui-term-gif-dots">` +
+          `<span class="dot dot-close"></span>` +
+          `<span class="dot dot-min"></span>` +
+          `<span class="dot dot-max"></span>` +
+          `</span>` +
+          `<code class="qmltui-term-gif-cmd">${cmd}</code>` +
+          `<span class="qmltui-term-gif-badge">terminal</span>` +
+          `</span>` +
+          `<span class="qmltui-term-gif-body">${imgHtml}</span>` +
+          `</span>`
+        )
+      }
     }
   },
 
@@ -139,6 +208,11 @@ export default defineConfig({
     [
       'link',
       { rel: 'icon', type: 'image/svg+xml', href: `${siteBase}assets/branding/qmltui_mark.svg` }
+    ],
+    [
+      'script',
+      {},
+      `try{if(localStorage.getItem('qmltui-sidebar-collapsed')==='1'){document.documentElement.classList.add('qmltui-sidebar-collapsed');}}catch(e){}`
     ]
   ],
 
