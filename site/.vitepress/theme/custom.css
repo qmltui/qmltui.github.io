@@ -72,6 +72,17 @@ pre code.language-text,
   text-decoration: none;
 }
 
+/* Keep the interactive showcase visible near the initial viewport fold */
+.VPHome .VPHero {
+  padding-bottom: 32px;
+}
+
+@media (min-width: 640px) {
+  .VPHome .VPHero {
+    padding-bottom: 40px;
+  }
+}
+
 /* Balanced 3 + 2 desktop grid when the home page has 5 feature cards */
 @media (min-width: 768px) {
   .VPFeatures .items:has(> .item:nth-child(5):last-child) > .item:nth-child(-n + 3) {

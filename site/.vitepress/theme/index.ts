@@ -1,7 +1,8 @@
 import DefaultTheme from 'vitepress/theme'
 import { useRoute, withBase } from 'vitepress'
 import type { Theme } from 'vitepress'
-import { nextTick, onMounted, watch } from 'vue'
+import { h, nextTick, onMounted, watch } from 'vue'
+import HomeShowcase from './HomeShowcase.vue'
 import PlaygroundPage from './PlaygroundPage.vue'
 import './custom.css'
 
@@ -150,6 +151,10 @@ function attachTryInPlaygroundButtons(): void {
 
 export default {
   extends: DefaultTheme,
+  Layout: () =>
+    h(DefaultTheme.Layout, null, {
+      'home-hero-after': () => h(HomeShowcase)
+    }),
   enhanceApp({ app }) {
     app.component('PlaygroundPage', PlaygroundPage)
   },

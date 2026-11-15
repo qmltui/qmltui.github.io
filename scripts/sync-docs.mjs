@@ -238,7 +238,7 @@ function copyDocsMarkdown(srcRoot, dstRoot, meta, relDir = '') {
   }
 }
 
-function upgradeHomeReadme(rawReadmePath, homeFrontmatter, hasShowcaseGifs) {
+function upgradeHomeReadme(rawReadmePath, homeFrontmatter) {
   if (!fs.existsSync(rawReadmePath)) return
   let readmeBody = fs.readFileSync(rawReadmePath, 'utf8')
   readmeBody = readmeBody.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n*/, '')
@@ -246,16 +246,15 @@ function upgradeHomeReadme(rawReadmePath, homeFrontmatter, hasShowcaseGifs) {
   // Strip the static lead paragraph that duplicates the VitePress hero tagline
   readmeBody = readmeBody.replace(/^\*\*QmlTui\*\* is a retained-mode[\s\S]*?\r?\n\r?\n/, '')
 
-  const spotlight = hasShowcaseGifs
-    ? `\n\n## Showcase Applications\n\nExplore 12 complete terminal applications built with QmlTui on the **[Application Showcase](showcase.md)** page, spanning inline AI coding sessions, multi-stage CLI package managers, system monitors, file managers with embedded PTY shells, oscilloscopes, and games:\n\n| [\`btop\`](showcase.md#btop) (System Monitor) | [\`agent_stream\`](showcase.md#agent-stream) (Inline AI Session) |\n| :---: | :---: |\n| [![btop](assets/showcase/btop.gif)](showcase.md#btop) | [![agent_stream](assets/showcase/agent_stream.gif)](showcase.md#agent-stream) |\n| [\`file_manager\`](showcase.md#file-manager) (Miller Columns + \`PtyView\`) | [\`package_manager\`](showcase.md#package-manager) (Inline CLI Installer) |\n| [![file_manager](assets/showcase/file_manager.gif)](showcase.md#file-manager) | [![package_manager](assets/showcase/package_manager.gif)](showcase.md#package-manager) |\n`
-    : `\n\n## Showcase Applications\n\nExplore 12 complete terminal applications built with QmlTui on the **[Application Showcase](showcase.md)** page.\n`
-
   readmeBody = readmeBody.replace(
     'Browse 45 interactive controls, views, layouts, animations, and terminal capabilities in `qmltui_gallery`:\n\n![QmlTui Interactive Component Gallery](assets/casts/gallery-tour.gif)',
     'Browse 45 interactive controls, views, layouts, animations, and terminal capabilities in the component gallery. **[▶ Try the Component Gallery live in your browser](playground.md?mode=gallery)** or open the **[Try It Yourself Playground](playground.md)** to edit and run QML directly via WebAssembly:\n\n[![QmlTui Interactive Component Gallery](assets/casts/gallery-tour.gif)](playground.md?mode=gallery)'
   )
 
-  readmeBody = readmeBody.replace('## Start Here', `${spotlight.trim()}\n\n## Start Here`)
+  readmeBody = readmeBody.replace(
+    'and 12 complete showcase applications (`btop`, `agent_stream`, `file_manager`, `package_manager`, `audio_player`, and more) in [qmltui/apps](https://github.com/qmltui/apps).',
+    'and 12 complete applications on the [Application Showcase](showcase.md) page (source in [qmltui/apps](https://github.com/qmltui/apps)).'
+  )
 
   fs.writeFileSync(rawReadmePath, `${homeFrontmatter}\n\n${readmeBody.trimStart()}`, 'utf8')
 }
@@ -292,9 +291,9 @@ function stageDocs() {
     }
   }
 
-  // 3. Construct README.md / index.md with VitePress home hero frontmatter & showcase spotlight
+  // 3. Construct README.md / index.md with VitePress home hero frontmatter
   const homeFrontmatter = fs.readFileSync(path.join(siteDir, 'home-frontmatter.md'), 'utf8').trim()
-  upgradeHomeReadme(path.join(stagedDocsDir, 'README.md'), homeFrontmatter, showcaseGifsCount > 0)
+  upgradeHomeReadme(path.join(stagedDocsDir, 'README.md'), homeFrontmatter)
 
   // 4. Copy site/playground.md, site/showcase.md, site/.vitepress/, and qmltui/docs/nav.json
   fs.copyFileSync(path.join(siteDir, 'playground.md'), path.join(stagedDocsDir, 'playground.md'))
@@ -429,6 +428,8 @@ function stageDocs() {
     commitShort: meta.commitShort,
     repoUrl: meta.repoUrl,
     appsRepoUrl: meta.appsRepoUrl,
+    appsCommit: meta.appsCommit,
+    showcaseStaged: showcaseGifsCount > 0,
     wasmStaged: wasmFound
   }
   fs.writeFileSync(

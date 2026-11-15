@@ -11,6 +11,8 @@ interface BuildMeta {
   commitShort: string
   repoUrl: string
   appsRepoUrl?: string
+  appsCommit?: string
+  showcaseStaged?: boolean
   wasmStaged: boolean
 }
 
@@ -114,6 +116,9 @@ export default defineConfig({
   },
 
   markdown: {
+    image: {
+      lazyLoading: true
+    },
     config(md) {
       const defaultFence = md.renderer.rules.fence!
       md.renderer.rules.fence = (tokens, idx, options, env, self) => {
@@ -170,6 +175,14 @@ export default defineConfig({
       message:
         'Documentation licensed under CC-BY-4.0. Library code under LGPL-3.0-only (WebAssembly demo binary: GPLv3).',
       copyright: 'Copyright © 2026 Yosri Ayed'
+    },
+
+    qmltuiApps: {
+      repoUrl: meta.appsRepoUrl || 'https://github.com/qmltui/apps',
+      commit: meta.appsCommit || 'main',
+      staged: meta.showcaseStaged !== false
     }
+  } as DefaultTheme.Config & {
+    qmltuiApps: { repoUrl: string; commit: string; staged: boolean }
   }
 })
