@@ -9,6 +9,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QMetaObject>
 #include <QQmlComponent>
 #include <QQmlContext>
 #include <QQmlEngine>
@@ -27,6 +28,8 @@ namespace {
 
 QQmlEngine* g_engine = nullptr;
 QObject* g_root = nullptr;
+QMetaObject::Connection g_quitNotifyConn;
+bool g_quitDuringCreate = false;
 QVariantMap g_exampleSources;
 
 // Page callbacks; each is optional.
@@ -36,6 +39,17 @@ EM_JS(void, playground_js_quit, (), {
 EM_JS(void, playground_js_warning, (const char* text, int length), {
     if (Module['qmltuiOnWarning']) Module['qmltuiOnWarning'](UTF8ToString(text, length));
 });
+
+void scheduleRootRelease() {
+    if (QObject* root = std::exchange(g_root, nullptr)) {
+        QObject::disconnect(g_quitNotifyConn);
+        g_quitNotifyConn =
+            QObject::connect(root, &QObject::destroyed, [] { playground_js_quit(); });
+        root->deleteLater();
+    } else {
+        g_quitDuringCreate = true;
+    }
+}
 
 std::string errorsToJson(const QList<QQmlError>& errors) {
     QJsonArray array;
@@ -56,7 +70,10 @@ std::string loadQml(const std::string& source, const std::string& fileName) {
 
     // Tear down the previous Terminal first, so its shutdown output (leave the
     // alternate screen, show the cursor) precedes the new root's first frame.
-    // A root released by Qt.quit() is pending in deleteLater(); flush it now.
+    // Disconnect any pending quit notification before flushing deleteLater() so
+    // replacing an exited root does not re-fire qmltuiOnQuit for the new run.
+    QObject::disconnect(g_quitNotifyConn);
+    g_quitDuringCreate = false;
     delete g_root;
     g_root = nullptr;
     QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
@@ -68,9 +85,13 @@ std::string loadQml(const std::string& source, const std::string& fileName) {
     if (component.isError()) return errorsToJson(component.errors());
 
     g_root = component.create();
-    if (!g_root) return errorsToJson(component.errors());
+    if (!g_root) {
+        g_quitDuringCreate = false;
+        return errorsToJson(component.errors());
+    }
 
     if (!g_root->inherits("qmltui::Terminal")) {
+        g_quitDuringCreate = false;
         QString name = QString::fromLatin1(g_root->metaObject()->className());
         name.remove(QRegularExpression(QStringLiteral("_QMLTYPE_\\d+$"))); // Main_QMLTYPE_4 -> Main
         delete g_root;
@@ -82,6 +103,10 @@ std::string loadQml(const std::string& source, const std::string& fileName) {
             QStringLiteral("the root item must be a Terminal, not %1").arg(name);
         item[QStringLiteral("file")] = QString::fromStdString(fileName);
         return QJsonDocument(QJsonArray{item}).toJson(QJsonDocument::Compact).toStdString();
+    }
+
+    if (std::exchange(g_quitDuringCreate, false)) {
+        scheduleRootRelease();
     }
     return {};
 }
@@ -151,14 +176,9 @@ int main(int argc, char* argv[]) {
         }
     });
     // Qt.quit() from user QML must not end the runtime (Qt would abort without
-    // Asyncify); tell the page instead and leave the engine ready for the next edit.
-    // The root is released with deleteLater(): quit() arrives from inside one
-    // of the root's own signal handlers, and deleting it there aborts.
-    const auto releaseRoot = [] {
-        if (QObject* root = std::exchange(g_root, nullptr)) root->deleteLater();
-        playground_js_quit();
-    };
-    QObject::connect(&engine, &QQmlEngine::quit, releaseRoot);
-    QObject::connect(&engine, &QQmlEngine::exit, [releaseRoot](int) { releaseRoot(); });
+    // Asyncify); destroy the root via deleteLater() so ~Terminal() flushes its
+    // shutdown sequences and Scrollback output first, then notify the page.
+    QObject::connect(&engine, &QQmlEngine::quit, &scheduleRootRelease);
+    QObject::connect(&engine, &QQmlEngine::exit, [](int) { scheduleRootRelease(); });
     return app.exec(); // never returns in the browser; the page drives qmltuiLoadQml
 }

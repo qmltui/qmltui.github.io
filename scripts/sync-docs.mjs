@@ -117,6 +117,21 @@ function readQmlTuiMeta(qmltuiDir, appsDir) {
   }
 }
 
+const REPO_ROOT_PATH_RE =
+  /^(?:\.agents\/|\.github\/|\.githooks\/|\.clang-format$|\.qmlformat\.ini$|\.qmlls\.ini$|cmake\/|examples\/|LICENSES\/|scripts\/|src\/|tests\/|tools\/|AGENTS\.md$|CLA\.md$|CMakeLists\.txt$|CONTRIBUTING\.md$|jsconfig\.json$|LICENSE(?:\.md)?$|README\.md$|REUSE\.toml$|THIRD-PARTY\.md$)/
+
+function replaceExpected(text, pattern, replacement, label) {
+  const next = text.replace(pattern, replacement)
+  if (next === text) {
+    const msg = `Expected pattern did not match in ${label}`
+    if (process.env.QMLTUI_STRICT_SYNC === '1') {
+      throw new Error(`[sync-docs] ${msg}`)
+    }
+    console.warn(`[sync-docs] WARNING: ${msg}`)
+  }
+  return next
+}
+
 function rewriteRepoRelativeLinks(markdown, relFileDir, meta) {
   const withSnippets = markdown.replace(
     /^<<<\s+([^\s{]+)(?:\{([^}]+)\})?\s*$/gm,
@@ -149,8 +164,8 @@ function rewriteRepoRelativeLinks(markdown, relFileDir, meta) {
     }
     if (resolvedFromDocs.startsWith('../')) {
       const repoRel = resolvedFromDocs.replace(/^(\.\.\/)+/, '')
-      if (/^(?:\.agents\/|cmake\/|examples\/|scripts\/|src\/|AGENTS\.md$|CMakeLists\.txt$|LICENSE(?:\.md)?$)/.test(repoRel)) {
-        const targetPath = path.join(meta.qmltuiDir, repoRel)
+      const targetPath = path.join(meta.qmltuiDir, repoRel)
+      if (REPO_ROOT_PATH_RE.test(repoRel) || fs.existsSync(targetPath)) {
         const isDir = fs.existsSync(targetPath) && fs.statSync(targetPath).isDirectory()
         const kind = isDir ? 'tree' : 'blob'
         const hash = hashPart ? `#${hashPart}` : ''
@@ -163,6 +178,22 @@ function rewriteRepoRelativeLinks(markdown, relFileDir, meta) {
 
 function injectPortalPlaygroundLinks(content, relPath) {
   if (relPath.startsWith('qml-types/') && relPath !== 'qml-types/index.md') {
+    if (relPath === 'qml-types/scrollback.md') {
+      return replaceExpected(
+        content,
+        '(`./build/examples/recipes/inline_repl/qmltui_inline_repl_demo`).',
+        '(`./build/examples/recipes/inline_repl/qmltui_inline_repl_demo`, or try `Terminal.Inline` in the [WebAssembly Playground](../playground.md?mode=inline)).',
+        'qml-types/scrollback.md recipe link'
+      )
+    }
+    if (relPath === 'qml-types/terminal.md') {
+      return replaceExpected(
+        content,
+        /(\[`examples\/gallery\/Main\.qml`\]\([^)]+\))\./,
+        '$1, or run a root `Terminal` live in the [WebAssembly Playground](../playground.md).',
+        'qml-types/terminal.md example link'
+      )
+    }
     return content.replace(
       /\(`\.\/build\/examples\/gallery\/qmltui_gallery --example ([A-Za-z0-9_]+)`\)\./g,
       (full, exampleName) => {
@@ -173,15 +204,20 @@ function injectPortalPlaygroundLinks(content, relPath) {
   }
 
   if (relPath === 'examples.md') {
-    let out = content.replace(
+    let out = replaceExpected(
+      content,
       '![QmlTui Interactive Gallery](assets/casts/gallery-tour.gif)',
-      '![QmlTui Interactive Gallery](assets/casts/gallery-tour.gif)\n\nYou can also write a complete `Terminal { ... }` application in the browser using the [Try It Yourself Playground](playground.md), browse all interactive components in the [WebAssembly Component Gallery](playground.md?mode=gallery), or inspect the 12 full-scale applications on the [Application Showcase](showcase.md) page.'
+      '![QmlTui Interactive Gallery](assets/casts/gallery-tour.gif)\n\nYou can also write a complete `Terminal { ... }` application in the browser using the [Try It Yourself Playground](playground.md), browse all interactive components in the [WebAssembly Component Gallery](playground.md?mode=gallery), or inspect the 12 full-scale applications on the [Application Showcase](showcase.md) page.',
+      'examples.md gallery intro'
     )
-    out = out.replace(
+    out = replaceExpected(
+      out,
       '| Example | Source File | CLI Command | QML Reference | Recording |\n| :--- | :--- | :--- | :--- | :--- |',
-      '| Example | Source File | CLI Command | QML Reference | Playground | Recording |\n| :--- | :--- | :--- | :--- | :--- | :--- |'
+      '| Example | Source File | CLI Command | QML Reference | Playground | Recording |\n| :--- | :--- | :--- | :--- | :--- | :--- |',
+      'examples.md table header'
     )
-    out = out.replace(
+    out = replaceExpected(
+      out,
       /^(\|\s*\*\*([A-Za-z0-9_]+)\*\*\s*\|[^|\n]+\|\s*`--example ([A-Za-z0-9_]+)`\s*\|[^|\n]+\|)(\s*(?:\[GIF\]\([^)]+\)|-)\s*\|)$/gm,
       (_full, prefixCols, _label, exampleName, recordingCol) => {
         const pgCell =
@@ -189,16 +225,26 @@ function injectPortalPlaygroundLinks(content, relPath) {
             ? ' POSIX only |'
             : ` [Open](playground.md?example=${exampleName}.qml) |`
         return `${prefixCols}${pgCell}${recordingCol}`
-      }
+      },
+      'examples.md table rows'
     )
     return out
   }
 
   if (relPath === 'getting-started.md') {
-    return content.replace(
-      'To inspect all 45 built-in controls, data views, layouts, and canvas primitives locally, clone the repository and build `qmltui_gallery`:',
-      'To inspect all 45 built-in controls, data views, layouts, and canvas primitives in your browser, open the [WebAssembly Playground](playground.md) (or [Component Gallery](playground.md?mode=gallery)). To build and run `qmltui_gallery` locally:'
+    let out = replaceExpected(
+      content,
+      /https:\/\/qmltui\.github\.io\/website\/playground\.html/g,
+      'playground.md',
+      'getting-started.md playground URLs'
     )
+    out = replaceExpected(
+      out,
+      'and showcase apps in [qmltui/apps](https://github.com/qmltui/apps).',
+      'and 12 full-scale apps on the [Application Showcase](showcase.md) page (source in [qmltui/apps](https://github.com/qmltui/apps)).',
+      'getting-started.md showcase link'
+    )
+    return out
   }
 
   return content
@@ -238,7 +284,7 @@ function copyDocsMarkdown(srcRoot, dstRoot, meta, relDir = '') {
   }
 }
 
-function upgradeHomeReadme(rawReadmePath, homeFrontmatter) {
+function upgradeHomeReadme(rawReadmePath, homeFrontmatter, meta) {
   if (!fs.existsSync(rawReadmePath)) return
   let readmeBody = fs.readFileSync(rawReadmePath, 'utf8')
   readmeBody = readmeBody.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n*/, '')
@@ -246,14 +292,41 @@ function upgradeHomeReadme(rawReadmePath, homeFrontmatter) {
   // Strip the static lead paragraph that duplicates the VitePress hero tagline
   readmeBody = readmeBody.replace(/^\*\*QmlTui\*\* is a retained-mode[\s\S]*?\r?\n\r?\n/, '')
 
-  readmeBody = readmeBody.replace(
+  // Inject a live Hello, World! QML block read directly from examples/helloworld/Main.qml
+  // so homepage visitors see real QML (with an automatic "▶ Try in Playground" button)
+  // between <HomeShowcase /> and the Interactive Component Gallery GIF.
+  if (!readmeBody.includes('## Hello, World!')) {
+    const helloQmlPath = path.join(meta.qmltuiDir, 'examples', 'helloworld', 'Main.qml')
+    if (fs.existsSync(helloQmlPath)) {
+      const helloQml = fs.readFileSync(helloQmlPath, 'utf8').trimEnd()
+      const helloUrl = `${meta.repoUrl}/blob/${meta.commit}/examples/helloworld/Main.qml`
+      const helloSection =
+        `## Hello, World!\n\n` +
+        `Every QmlTui application starts with a root [\`Terminal\`](qml-types/terminal.md) item. ` +
+        `Click **▶ Try in Playground** on [\`examples/helloworld/Main.qml\`](${helloUrl}) below to edit and run it in your browser, ` +
+        `or follow the [Getting Started Tutorial](getting-started.md) to build a native CMake binary:\n\n` +
+        `\`\`\`qml\n${helloQml}\n\`\`\`\n\n`
+      readmeBody = replaceExpected(
+        readmeBody,
+        '## Interactive Component Gallery',
+        `${helloSection}## Interactive Component Gallery`,
+        'README.md Hello, World! injection anchor'
+      )
+    }
+  }
+
+  readmeBody = replaceExpected(
+    readmeBody,
     'Browse 45 interactive controls, views, layouts, animations, and terminal capabilities in `qmltui_gallery`:\n\n![QmlTui Interactive Component Gallery](assets/casts/gallery-tour.gif)',
-    'Browse 45 interactive controls, views, layouts, animations, and terminal capabilities in the component gallery. **[▶ Try the Component Gallery live in your browser](playground.md?mode=gallery)** or open the **[Try It Yourself Playground](playground.md)** to edit and run QML directly via WebAssembly:\n\n[![QmlTui Interactive Component Gallery](assets/casts/gallery-tour.gif)](playground.md?mode=gallery)'
+    'Browse 45 interactive controls, views, layouts, animations, and terminal capabilities in the component gallery. **[▶ Try the Component Gallery live in your browser](playground.md?mode=gallery)** or open the **[Try It Yourself Playground](playground.md)** to edit and run QML directly via WebAssembly:\n\n[![QmlTui Interactive Component Gallery](assets/casts/gallery-tour.gif)](playground.md?mode=gallery)',
+    'README.md gallery section'
   )
 
-  readmeBody = readmeBody.replace(
+  readmeBody = replaceExpected(
+    readmeBody,
     'and 12 complete showcase applications (`qtop`, `agent_stream`, `file_manager`, `package_manager`, `audio_player`, and more) in [qmltui/apps](https://github.com/qmltui/apps).',
-    'and 12 complete applications on the [Application Showcase](showcase.md) page (source in [qmltui/apps](https://github.com/qmltui/apps)).'
+    'and 12 complete applications on the [Application Showcase](showcase.md) page (source in [qmltui/apps](https://github.com/qmltui/apps)).',
+    'README.md showcase link'
   )
 
   fs.writeFileSync(rawReadmePath, `${homeFrontmatter}\n\n${readmeBody.trimStart()}`, 'utf8')
@@ -293,7 +366,7 @@ function stageDocs() {
 
   // 3. Construct README.md / index.md with VitePress home hero frontmatter
   const homeFrontmatter = fs.readFileSync(path.join(siteDir, 'home-frontmatter.md'), 'utf8').trim()
-  upgradeHomeReadme(path.join(stagedDocsDir, 'README.md'), homeFrontmatter)
+  upgradeHomeReadme(path.join(stagedDocsDir, 'README.md'), homeFrontmatter, meta)
 
   // 4. Copy site/playground.md, site/showcase.md, site/.vitepress/, and qmltui/docs/nav.json
   fs.copyFileSync(path.join(siteDir, 'playground.md'), path.join(stagedDocsDir, 'playground.md'))

@@ -316,7 +316,14 @@ let term = null;
 let fit = null;
 let instance = null;
 let hasWasmRuntime = false;
+let appRunning = false;
 const encoder = new TextEncoder();
+
+function setExitedState(exited) {
+  appRunning = !exited;
+  const banner = $('exitedBanner');
+  if (banner) banner.classList.toggle('visible', Boolean(exited));
+}
 
 function saveXtermSettings() {
   try {
@@ -663,8 +670,8 @@ async function startRuntime() {
     noInitialRun: true,
     qmltuiOnOutput: (bytes) => term.write(bytes),
     qmltuiOnQuit: () => {
-      status.textContent = 'Qt.quit() called. Edit or press ▶ Run to restart.';
-      term.reset();
+      setExitedState(true);
+      status.textContent = 'exited (Qt.quit()) — press Enter or ▶ Run to restart';
     },
     qmltuiOnWarning: (text) => addProblem('warning', text),
     print: (t) => console.log(t),
@@ -673,8 +680,19 @@ async function startRuntime() {
   hasWasmRuntime = true;
   if (previewFallback) previewFallback.classList.remove('active');
   instance.qmltuiResize(term.cols, term.rows);
-  term.onData((s) => instance.qmltuiFeedInput(encoder.encode(s)));
-  term.onBinary((s) => instance.qmltuiFeedInput(Uint8Array.from(s, (c) => c.charCodeAt(0))));
+  term.onData((s) => {
+    if (!appRunning) {
+      if (s === '\r' || s === '\n' || s === 'r' || s === 'R') {
+        run({ fromAutoRun: false });
+      }
+      return;
+    }
+    instance.qmltuiFeedInput(encoder.encode(s));
+  });
+  term.onBinary((s) => {
+    if (!appRunning) return;
+    instance.qmltuiFeedInput(Uint8Array.from(s, (c) => c.charCodeAt(0)));
+  });
   term.onResize(({ cols, rows }) => instance.qmltuiResize(cols, rows));
   term.onTitleChange((title) => {
     if (mode === 'playground' || !title) return;
@@ -862,6 +880,7 @@ function run({ fromAutoRun = false } = {}) {
 
   if (mode === 'playground') {
     const code = playgroundSources[playgroundKey];
+    setExitedState(false);
     term.reset();
     const result = instance.qmltuiLoadQml(code, 'Main.qml');
     if (!result) {
@@ -870,6 +889,7 @@ function run({ fromAutoRun = false } = {}) {
       if (shouldFocusTerminal) term.focus();
       return;
     }
+    appRunning = false;
     const errors = JSON.parse(result);
     status.textContent = `${errors.length} error${errors.length === 1 ? '' : 's'} in Main.qml`;
     for (const e of errors) addProblem('error', `Main.qml:${e.line}:${e.column}: ${e.message}`);
@@ -886,6 +906,7 @@ function run({ fromAutoRun = false } = {}) {
     }
     instance.qmltuiWriteFile(`examples/${focusFile}`, sources[focusFile]);
   }
+  setExitedState(false);
   term.reset();
   instance.qmltuiSetContextProperty('qmltuiAvailableExamples', JSON.stringify(Object.keys(sources).filter((f) => f !== 'PtyView.qml')));
   instance.qmltuiSetContextProperty('qmltuiGalleryPage', mode === 'example' && focusFile !== 'PtyView.qml' ? focusFile : '');
@@ -896,6 +917,7 @@ function run({ fromAutoRun = false } = {}) {
     if (shouldFocusTerminal) term.focus();
     return;
   }
+  appRunning = false;
   const errors = JSON.parse(result);
   status.textContent = `${errors.length} error${errors.length === 1 ? '' : 's'}`;
   for (const e of errors) addProblem('error', `${e.file || 'gallery.qml'}:${e.line}:${e.column}: ${e.message}`);
@@ -905,6 +927,22 @@ $('run').onclick = () => {
   run({ fromAutoRun: false });
   if (term) term.focus();
 };
+if ($('restartBtn')) {
+  $('restartBtn').onclick = () => {
+    run({ fromAutoRun: false });
+    if (term) term.focus();
+  };
+}
+if (!location.pathname.includes('/playground/')) {
+  for (const id of ['homeLink', 'docsLink']) {
+    const el = $(id);
+    if (el) {
+      el.href = 'https://qmltui.github.io/website/';
+      el.target = '_blank';
+      el.rel = 'noopener';
+    }
+  }
+}
 if (btnPlayground) {
   btnPlayground.onclick = () => {
     showPlayground(playgroundKey || '__playground__');
@@ -951,7 +989,7 @@ if (exampleSelect) {
 }
 $('share').onclick = async () => {
   commitEditor();
-  location.hash = 'code=' + await encodeShare(JSON.stringify({
+  const hashValue = 'code=' + await encodeShare(JSON.stringify({
     mode,
     playgroundKey,
     playgroundSource: playgroundSources[playgroundKey],
@@ -959,7 +997,18 @@ $('share').onclick = async () => {
     sources,
     focusFile,
   }));
-  await navigator.clipboard?.writeText(location.href).catch(() => {});
+  location.hash = hashValue;
+  let shareHref = location.href;
+  try {
+    if (window.parent && window.parent !== window && window.parent.location?.origin === location.origin) {
+      const parentUrl = new URL(window.parent.location.href);
+      parentUrl.search = '';
+      parentUrl.hash = hashValue;
+      window.parent.history.replaceState(null, '', parentUrl.toString());
+      shareHref = parentUrl.toString();
+    }
+  } catch { /* cross-origin parent */ }
+  await navigator.clipboard?.writeText(shareHref).catch(() => {});
   status.textContent = 'link copied to clipboard';
 };
 
@@ -991,6 +1040,14 @@ function getQueryParam(key) {
   }
 }
 
+function getLocationHash() {
+  if (location.hash) return location.hash;
+  try {
+    return window.parent?.location?.hash || '';
+  } catch {
+    return '';
+  }
+}
 // --- Boot --------------------------------------------------------------------
 (async () => {
   launcher = await (await fetch('gallery.qml')).text();
@@ -1035,7 +1092,7 @@ function getQueryParam(key) {
     }
   }
 
-  const m = location.hash.match(/#code=([A-Za-z0-9_-]+)/);
+  const m = getLocationHash().match(/#code=([A-Za-z0-9_-]+)/);
   if (m) {
     try {
       const shared = JSON.parse(await decodeShare(m[1]));

@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "types": "node scripts/generate-types.mjs",
     "sync": "node scripts/sync-docs.mjs",
     "docs:dev": "node scripts/sync-docs.mjs && vitepress dev docs",
     "docs:build": "node scripts/sync-docs.mjs && vitepress build docs",

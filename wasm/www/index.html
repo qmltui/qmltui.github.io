@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>QmlTui Playground</title>
+<link rel="icon" type="image/svg+xml" href="../assets/branding/qmltui_mark.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=IBM+Plex+Mono:ital,wght@0,400;0,700;1,400&family=Inconsolata:wght@400;700&family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&family=Source+Code+Pro:ital,wght@0,400;0,700;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400&display=swap">
@@ -23,7 +24,14 @@
          background: var(--bg); color: var(--text); font: 14px system-ui, -apple-system, sans-serif; }
   header { display: flex; gap: .55rem; align-items: center; padding: 0 1rem;
            background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; }
-  header h1 { font-size: .95rem; margin: 0; font-weight: 700; color: var(--brand); letter-spacing: 0.01em; white-space: nowrap; }
+  .brand-link { display: inline-flex; align-items: center; gap: .4rem; text-decoration: none;
+                font-size: .95rem; font-weight: 700; color: var(--brand); letter-spacing: 0.01em; white-space: nowrap; }
+  .brand-link:hover { color: var(--brand-bright); }
+  .brand-link img { display: block; flex-shrink: 0; }
+  .docs-link { display: inline-flex; align-items: center; text-decoration: none; color: var(--muted);
+               border: 1px solid var(--border); background: var(--bg); padding: .22rem .55rem;
+               border-radius: 5px; font-size: .78rem; white-space: nowrap; }
+  .docs-link:hover { border-color: var(--brand); color: var(--brand-bright); }
   button, select { background: var(--bg); color: var(--text); border: 1px solid var(--border);
                    padding: .25rem .6rem; border-radius: 5px; font-size: .8rem; white-space: nowrap; }
   button:hover, select:hover { border-color: var(--brand); cursor: pointer; }
@@ -126,6 +134,25 @@
     color: var(--brand-bright);
     box-shadow: 0 0 12px rgba(0, 255, 102, 0.28);
   }
+  #exitedBanner {
+    position: absolute;
+    bottom: .5rem;
+    right: .5rem;
+    z-index: 30;
+    display: none;
+    align-items: center;
+    gap: .55rem;
+    padding: .28rem .45rem .28rem .7rem;
+    background: rgba(22, 27, 34, 0.94);
+    border: 1px solid var(--brand);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: .78rem;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+  }
+  #exitedBanner.visible { display: inline-flex; }
+  #exitedBanner code { color: var(--brand-bright); font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .75rem; }
   #previewFallback { display: none; flex-direction: column; align-items: center; justify-content: center;
                      height: 100%; gap: .8rem; text-align: center; padding: 1rem; box-sizing: border-box; }
   #previewFallback.active { display: flex; }
@@ -255,7 +282,11 @@
 </head>
 <body>
 <header>
-  <h1>QmlTui</h1>
+  <a id="homeLink" class="brand-link" href="../" target="_top" title="Back to QmlTui Documentation">
+    <img src="../assets/branding/qmltui_mark.svg" alt="" width="18" height="18" onerror="this.style.display='none'">
+    <span>QmlTui</span>
+  </a>
+  <a id="docsLink" class="docs-link" href="../" target="_top" title="Back to QmlTui Documentation">← Docs</a>
   <div class="mode-group">
     <button id="btnPlayground" class="mode-btn active" title="Write a full root Terminal {} application (AltScreen or Inline)">▶ Try It Yourself</button>
     <button id="btnGallery" class="mode-btn" title="Browse 44 interactive component examples in the Gallery Grid">▦ Gallery Grid</button>
@@ -374,11 +405,15 @@
   <div id="editor"></div>
   <div id="terminal">
     <button id="drawerToggleBtn" title="Toggle QML Code Drawer">◀ Hide Code</button>
+    <div id="exitedBanner" role="status" aria-live="polite">
+      <span>Session exited (<code>Qt.quit()</code>)</span>
+      <button id="restartBtn" class="primary" title="Relaunch QML session (or press Enter in terminal)">▶ Restart</button>
+    </div>
     <div id="previewFallback">
       <img id="previewGif" alt="Recorded terminal preview">
       <div class="fallback-note">
         Showing recorded terminal preview (<span id="previewLabel">gallery-tour.gif</span>).
-        When built with Qt for WebAssembly (<code>qt-cmake -S examples/wasm -B build-wasm</code>),
+        When built with Qt for WebAssembly (<code>qt-cmake -S wasm -B build-wasm</code>),
         this pane runs the live interactive WebAssembly terminal.
       </div>
     </div>
