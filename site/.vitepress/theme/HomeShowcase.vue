@@ -58,63 +58,6 @@ const ITEMS: ShowcaseApp[] = [
     ]
   },
   {
-    id: 'agent_stream',
-    slug: 'agent-stream',
-    label: 'Inline AI CLI',
-    mode: 'Terminal.Inline',
-    modeIcon: '▸',
-    modeKind: 'inline',
-    gif: '/assets/showcase/agent_stream.gif',
-    width: 1171,
-    height: 806,
-    summary:
-      'Interactive coding-agent CLI running directly in normal shell scrollback with Scrollback.print() history cards, slash-command autocomplete, and side-by-side diffs.',
-    primitives: [
-      { name: 'Terminal.Inline', link: '/guides/inline-mode.html' },
-      { name: 'Scrollback', link: '/qml-types/scrollback.html' },
-      { name: 'ListView', link: '/qml-types/listview.html' },
-      { name: 'Popup', link: '/qml-types/popup.html' }
-    ]
-  },
-  {
-    id: 'file_manager',
-    slug: 'file-manager',
-    label: 'Files + PTY',
-    mode: 'AltScreen + PtyView',
-    modeIcon: '⌘',
-    modeKind: 'pty',
-    gif: '/assets/showcase/file_manager.gif',
-    width: 1171,
-    height: 694,
-    summary:
-      'Three-column Miller file browser with syntax-highlighted source and Markdown previews, asynchronous Image / SVG / PDF rendering, and an embedded Unix shell.',
-    primitives: [
-      { name: 'PtyView', link: '/guides/pty-view.html' },
-      { name: 'Image', link: '/qml-types/image.html' },
-      { name: 'ListView', link: '/qml-types/listview.html' },
-      { name: 'FocusScope', link: '/qml-types/focusscope.html' }
-    ]
-  },
-  {
-    id: 'package_manager',
-    slug: 'package-manager',
-    label: 'CLI Installer',
-    mode: 'Terminal.Inline',
-    modeIcon: '▸',
-    modeKind: 'inline',
-    gif: '/assets/showcase/package_manager.gif',
-    width: 1056,
-    height: 694,
-    summary:
-      'Multi-stage inline package installer (qpm) with interactive transaction TableView, dependency TreeView, 4-worker build ProgressBars, and Scrollback receipt cards.',
-    primitives: [
-      { name: 'Terminal.Inline', link: '/guides/inline-mode.html' },
-      { name: 'TableView', link: '/qml-types/tableview.html' },
-      { name: 'TreeView', link: '/qml-types/treeview.html' },
-      { name: 'ProgressBar', link: '/qml-types/progressbar.html' }
-    ]
-  },
-  {
     id: 'audio_player',
     slug: 'audio-player',
     label: 'Audio Deck',
@@ -151,12 +94,70 @@ const ITEMS: ShowcaseApp[] = [
       { name: 'TableView', link: '/qml-types/tableview.html' },
       { name: 'Popup', link: '/qml-types/popup.html' }
     ]
+  },
+  {
+    id: 'file_manager',
+    slug: 'file-manager',
+    label: 'Files + PTY',
+    mode: 'AltScreen + PtyView',
+    modeIcon: '⌘',
+    modeKind: 'pty',
+    gif: '/assets/showcase/file_manager.gif',
+    width: 1171,
+    height: 694,
+    summary:
+      'Three-column Miller file browser with syntax-highlighted source and Markdown previews, asynchronous Image / SVG / PDF rendering, and an embedded Unix shell.',
+    primitives: [
+      { name: 'PtyView', link: '/guides/pty-view.html' },
+      { name: 'Image', link: '/qml-types/image.html' },
+      { name: 'ListView', link: '/qml-types/listview.html' },
+      { name: 'FocusScope', link: '/qml-types/focusscope.html' }
+    ]
+  },
+  {
+    id: 'agent_stream',
+    slug: 'agent-stream',
+    label: 'Inline AI CLI',
+    mode: 'Terminal.Inline',
+    modeIcon: '▸',
+    modeKind: 'inline',
+    gif: '/assets/showcase/agent_stream.gif',
+    width: 1171,
+    height: 806,
+    summary:
+      'Interactive coding-agent CLI running directly in normal shell scrollback with Scrollback.print() history cards, slash-command autocomplete, and side-by-side diffs.',
+    primitives: [
+      { name: 'Terminal.Inline', link: '/guides/inline-mode.html' },
+      { name: 'Scrollback', link: '/qml-types/scrollback.html' },
+      { name: 'ListView', link: '/qml-types/listview.html' },
+      { name: 'Popup', link: '/qml-types/popup.html' }
+    ]
+  },
+  {
+    id: 'package_manager',
+    slug: 'package-manager',
+    label: 'CLI Installer',
+    mode: 'Terminal.Inline',
+    modeIcon: '▸',
+    modeKind: 'inline',
+    gif: '/assets/showcase/package_manager.gif',
+    width: 1056,
+    height: 694,
+    summary:
+      'Multi-stage inline package installer (qpm) with interactive transaction TableView, dependency TreeView, 4-worker build ProgressBars, and Scrollback receipt cards.',
+    primitives: [
+      { name: 'Terminal.Inline', link: '/guides/inline-mode.html' },
+      { name: 'TableView', link: '/qml-types/tableview.html' },
+      { name: 'TreeView', link: '/qml-types/treeview.html' },
+      { name: 'ProgressBar', link: '/qml-types/progressbar.html' }
+    ]
   }
 ]
 
 const { frontmatter, theme } = useData()
 
 const activeIndex = ref(0)
+const sectionRef = ref<HTMLElement | null>(null)
 const tabRefs = ref<HTMLButtonElement[]>([])
 const stageImgRef = ref<HTMLImageElement | null>(null)
 const loadedGifs = ref<Record<string, boolean>>({})
@@ -167,7 +168,9 @@ const clientMounted = ref(false)
 const autoRotateEnabled = ref(true)
 const isHovered = ref(false)
 const isDocHidden = ref(false)
+const isInView = ref(true)
 const cycleKey = ref(0)
+let intersectionObserver: IntersectionObserver | null = null
 
 const appsMeta = computed<AppsMeta>(() => {
   const raw = (theme.value as Record<string, unknown>)?.qmltuiApps as AppsMeta | undefined
@@ -191,6 +194,7 @@ const isRotationPaused = computed(
     !autoRotateEnabled.value ||
     isHovered.value ||
     isDocHidden.value ||
+    !isInView.value ||
     (!isCurrentLoaded.value && !isCurrentFailed.value)
 )
 
@@ -284,6 +288,18 @@ onMounted(() => {
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', handleVisibilityChange)
   }
+  if (typeof IntersectionObserver !== 'undefined' && sectionRef.value) {
+    intersectionObserver = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        if (entry) {
+          isInView.value = entry.isIntersecting
+        }
+      },
+      { threshold: 0.1 }
+    )
+    intersectionObserver.observe(sectionRef.value)
+  }
   syncImageCompletion()
 })
 
@@ -291,12 +307,17 @@ onBeforeUnmount(() => {
   if (typeof document !== 'undefined') {
     document.removeEventListener('visibilitychange', handleVisibilityChange)
   }
+  if (intersectionObserver) {
+    intersectionObserver.disconnect()
+    intersectionObserver = null
+  }
 })
 </script>
 
 <template>
   <section
     v-if="frontmatter.layout === 'home' || frontmatter.isHomeOverview"
+    ref="sectionRef"
     class="qmltui-home-showcase"
     :class="{ 'in-doc-overview': Boolean(frontmatter.isHomeOverview) }"
     aria-labelledby="qmltui-showcase-heading"
@@ -304,7 +325,7 @@ onBeforeUnmount(() => {
     <div class="showcase-container">
       <div class="showcase-header">
         <div class="showcase-heading-group">
-          <h2 id="qmltui-showcase-heading" class="showcase-title">Built with QmlTui</h2>
+          <h2 id="qmltui-showcase-heading" class="showcase-title">Demo Apps</h2>
           <p class="showcase-subtitle">
             Full-screen dashboards, inline CLI sessions, sub-cell Braille plots, and embedded PTY
             tools running natively in the terminal.
@@ -333,7 +354,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div class="showcase-tablist" role="tablist" aria-label="Featured QmlTui applications">
+      <div class="showcase-tablist" role="tablist" aria-label="Demo QmlTui applications">
         <button
           v-for="(item, idx) in ITEMS"
           :id="`showcase-tab-${item.id}`"
@@ -654,7 +675,7 @@ onBeforeUnmount(() => {
   border-radius: 2px;
   background: var(--vp-c-brand-1);
   transform-origin: left center;
-  animation: showcase-tab-progress 7s linear forwards;
+  animation: showcase-tab-progress 4s linear forwards;
 }
 
 .tab-progress.paused {
@@ -800,23 +821,21 @@ onBeforeUnmount(() => {
   border-radius: 4px;
 }
 
-/* Fixed-aspect terminal stage prevents layout shifts across GIFs */
+/* Terminal body wraps each recording naturally like .qmltui-term-gif-body on /showcase */
 .terminal-stage {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 100%;
-  aspect-ratio: 16 / 10;
-  max-height: 560px;
+  padding: 6px;
   background: #121314;
-  overflow: hidden;
+  line-height: 0;
 }
 
 .stage-gif {
+  display: block;
   width: 100%;
-  height: 100%;
-  object-fit: contain;
+  height: auto;
+  border-radius: 4px;
   opacity: 0;
   transition: opacity 0.18s ease-out;
 }
@@ -827,15 +846,23 @@ onBeforeUnmount(() => {
 
 .stage-status,
 .stage-fallback {
-  position: absolute;
-  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
   text-align: center;
   font-size: 0.875rem;
+  line-height: 1.5;
   color: #8b949e;
+}
+
+.stage-status {
+  position: absolute;
+  inset: 0;
+}
+
+.stage-fallback {
+  min-height: 220px;
 }
 
 .stage-status code,
@@ -925,10 +952,6 @@ onBeforeUnmount(() => {
 @media (max-width: 639px) {
   .chrome-command {
     display: none;
-  }
-
-  .terminal-stage {
-    aspect-ratio: 4 / 3;
   }
 }
 
