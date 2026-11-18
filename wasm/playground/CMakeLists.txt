@@ -22,7 +22,6 @@ qt_add_executable(qmltui_playground main.cpp)
 
 qt_add_qml_module(qmltui_playground
     URI QmlTuiPlayground
-    VERSION 1.0
     QML_FILES "${CMAKE_CURRENT_BINARY_DIR}/Imports.qml"
     DEPENDENCIES ${playground_dependencies}
 )

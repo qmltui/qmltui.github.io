@@ -90,18 +90,18 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: '6.11.1'
-          host: 'linux'
-          target: 'desktop'
+          host: 'all_os'
+          target: 'wasm'
           arch: 'wasm_singlethread'
           cache: true
 
       - name: Build WebAssembly Playground
         if: steps.wasm-cache.outputs.cache-hit != 'true'
         run: |
-          "${{ steps.qt-wasm.outputs.install-dir }}/bin/qt-cmake" \
-            -S wasm -B build-wasm -G Ninja \
+          cmake -S wasm -B build-wasm -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="${{ steps.qt-wasm.outputs.qt-root-dir }}/lib/cmake/Qt6/qt.toolchain.cmake" \
             -DCMAKE_BUILD_TYPE=MinSizeRel \
-            -DQT_HOST_PATH="${{ steps.qt-host.outputs.install-dir }}" \
+            -DQT_HOST_PATH="${{ steps.qt-host.outputs.qt-root-dir }}" \
             -DQMLTUI_SOURCE_DIR="${{ github.workspace }}/.cache/qmltui"
           cmake --build build-wasm --parallel
 
@@ -117,6 +117,9 @@ jobs:
           QMLTUI_REQUIRE_WASM: '1'
           VITEPRESS_BASE: ${{ steps.pages.outputs.base_path || '/' }}
         run: |
+          if [ "${{ steps.wasm-cache.outputs.cache-hit }}" != "true" ]; then
+            node scripts/generate-types.mjs
+          fi
           npm install --no-package-lock
           npm run docs:build
           test -f public/playground/qmltui_playground.wasm

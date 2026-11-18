@@ -86,12 +86,15 @@ endforeach()
 string(REGEX REPLACE ", $" "" example_index "${example_index}")
 file(WRITE "${QMLTUI_WASM_WWW_DIR}/examples/index.json" "[${example_index}]\n")
 
-# Stamp version and git commit SHA of QMLTUI_SOURCE_DIR into wasm-meta.json
+# Stamp version, git commit SHA, and Wasm input tree hash of QMLTUI_SOURCE_DIR
+# into wasm-meta.json at configure time and on every qmltui_playground build.
+set(_stamp_wasm_meta_script "${CMAKE_CURRENT_BINARY_DIR}/stamp_wasm_meta.cmake")
+file(WRITE "${_stamp_wasm_meta_script}" [=[
 file(READ "${QMLTUI_SOURCE_DIR}/CMakeLists.txt" _qmltui_cmake_text)
 string(REGEX MATCH "project\\(qmltui[ \t\r\n]+VERSION[ \t\r\n]+([0-9]+\\.[0-9]+\\.[0-9]+)" _ver_match "${_qmltui_cmake_text}")
 set(_qmltui_version "${CMAKE_MATCH_1}")
 if(NOT _qmltui_version)
-    set(_qmltui_version "0.5.0")
+    set(_qmltui_version "0.6.0")
 endif()
 
 execute_process(
@@ -106,6 +109,36 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
     ERROR_QUIET
 )
+execute_process(
+    COMMAND git -C "${QMLTUI_SOURCE_DIR}" ls-tree HEAD CMakeLists.txt cmake src examples/gallery
+    OUTPUT_VARIABLE _qmltui_ls_tree
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+execute_process(
+    COMMAND git -C "${QMLTUI_SOURCE_DIR}" diff HEAD -- CMakeLists.txt cmake src examples/gallery
+    OUTPUT_VARIABLE _qmltui_worktree_diff
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+string(SHA256 _qmltui_source_tree_hash "${_qmltui_version}\n${_qmltui_ls_tree}\n${_qmltui_worktree_diff}")
+
 file(WRITE "${QMLTUI_WASM_WWW_DIR}/wasm-meta.json"
-    "{\n  \"version\": \"${_qmltui_version}\",\n  \"commit\": \"${_qmltui_commit}\",\n  \"commitShort\": \"${_qmltui_commit_short}\"\n}\n"
+    "{\n  \"version\": \"${_qmltui_version}\",\n  \"commit\": \"${_qmltui_commit}\",\n  \"commitShort\": \"${_qmltui_commit_short}\",\n  \"sourceTreeHash\": \"${_qmltui_source_tree_hash}\"\n}\n"
+)
+]=])
+
+execute_process(
+    COMMAND "${CMAKE_COMMAND}"
+        "-DQMLTUI_SOURCE_DIR=${QMLTUI_SOURCE_DIR}"
+        "-DQMLTUI_WASM_WWW_DIR=${QMLTUI_WASM_WWW_DIR}"
+        -P "${_stamp_wasm_meta_script}"
+)
+add_custom_target(qmltui_wasm_meta ALL
+    DEPENDS qmltui_playground
+    COMMAND "${CMAKE_COMMAND}"
+        "-DQMLTUI_SOURCE_DIR=${QMLTUI_SOURCE_DIR}"
+        "-DQMLTUI_WASM_WWW_DIR=${QMLTUI_WASM_WWW_DIR}"
+        -P "${_stamp_wasm_meta_script}"
+    VERBATIM
 )

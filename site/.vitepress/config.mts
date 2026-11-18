@@ -35,7 +35,7 @@ function loadBuildMeta(): BuildMeta {
     }
   }
   return {
-    version: '0.5.0',
+    version: '0.6.0',
     commit: 'main',
     commitShort: 'main',
     repoUrl: 'https://github.com/qmltui/qmltui',
@@ -155,6 +155,9 @@ export default defineConfig({
   srcExclude: ['contributing/**'],
   cleanUrls: false,
   appearance: 'dark',
+  sitemap: {
+    hostname: 'https://qmltui.github.io/website/'
+  },
 
   rewrites: {
     'README.md': 'index.md'
@@ -209,6 +212,32 @@ export default defineConfig({
       'link',
       { rel: 'icon', type: 'image/svg+xml', href: `${siteBase}assets/branding/qmltui_mark.svg` }
     ],
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:site_name', content: 'QmlTui' }],
+    ['meta', { property: 'og:title', content: 'QmlTui — Retained-Mode Terminal UIs with QML and Qt 6' }],
+    [
+      'meta',
+      {
+        property: 'og:description',
+        content:
+          'Declarative, reactive QML for terminal UI frontends, powered by Qt 6 and C++17 on QCoreApplication.'
+      }
+    ],
+    [
+      'meta',
+      {
+        property: 'og:image',
+        content: 'https://qmltui.github.io/website/assets/branding/qmltui_logo_sheet.png'
+      }
+    ],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    [
+      'meta',
+      {
+        name: 'twitter:image',
+        content: 'https://qmltui.github.io/website/assets/branding/qmltui_logo_sheet.png'
+      }
+    ],
     [
       'script',
       {},
@@ -236,8 +265,12 @@ export default defineConfig({
       { text: 'Gallery', link: '/playground?mode=gallery', target: '_blank' },
       { text: 'Playground', link: '/playground', target: '_blank' },
       {
-        text: `v${meta.version} (${meta.commitShort})`,
-        link: `${meta.repoUrl}/tree/${meta.commit}`
+        text: `v${meta.version}`,
+        items: [
+          { text: 'Changelog', link: '/changes/changelog' },
+          { text: 'GitHub Releases', link: `${meta.repoUrl}/releases` },
+          { text: `Source (${meta.commitShort})`, link: `${meta.repoUrl}/tree/${meta.commit}` }
+        ]
       }
     ],
 

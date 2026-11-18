@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process'
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -87,13 +88,35 @@ function readGitCommit(dir, fallback = 'main') {
   }
 }
 
+function computeWasmSourceTreeHash(qmltuiDir, version) {
+  try {
+    const lsTree = execFileSync(
+      'git',
+      ['-C', qmltuiDir, 'ls-tree', 'HEAD', 'CMakeLists.txt', 'cmake', 'src', 'examples/gallery'],
+      { encoding: 'utf8' }
+    ).replace(/\s+$/, '')
+    const worktreeDiff = execFileSync(
+      'git',
+      ['-C', qmltuiDir, 'diff', 'HEAD', '--', 'CMakeLists.txt', 'cmake', 'src', 'examples/gallery'],
+      { encoding: 'utf8' }
+    ).replace(/\s+$/, '')
+    return crypto
+      .createHash('sha256')
+      .update(`${version}\n${lsTree}\n${worktreeDiff}`)
+      .digest('hex')
+  } catch {
+    return null
+  }
+}
+
 function readQmlTuiMeta(qmltuiDir, appsDir) {
   const cmakeText = fs.readFileSync(path.join(qmltuiDir, 'CMakeLists.txt'), 'utf8')
   const verMatch = cmakeText.match(/project\(qmltui\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)/)
-  const version = verMatch ? verMatch[1] : '0.5.0'
+  const version = verMatch ? verMatch[1] : '0.6.0'
 
   const { commit, commitShort } = readGitCommit(qmltuiDir, 'main')
   const { commit: appsCommit, commitShort: appsCommitShort } = readGitCommit(appsDir, 'main')
+  const sourceTreeHash = computeWasmSourceTreeHash(qmltuiDir, version)
 
   const repoUrl = (process.env.QMLTUI_GITHUB_URL || 'https://github.com/qmltui/qmltui').replace(
     /\/+$/,
@@ -108,6 +131,7 @@ function readQmlTuiMeta(qmltuiDir, appsDir) {
     version,
     commit,
     commitShort,
+    sourceTreeHash,
     repoUrl,
     qmltuiDir,
     appsDir,
@@ -150,6 +174,9 @@ function rewriteRepoRelativeLinks(markdown, relFileDir, meta) {
   return withSnippets.replace(/(\[[^\]]+\]\()([^)]+)(\))/g, (full, prefix, rawUrl, suffix) => {
     const trimmed = rawUrl.trim()
     if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed) || trimmed.startsWith('#') || trimmed.startsWith('/')) {
+      if (/^#\d/.test(trimmed)) {
+        return `${prefix}#_${trimmed.slice(1)}${suffix}`
+      }
       return full
     }
     const [pathname, hashPart] = trimmed.split('#')
@@ -171,6 +198,9 @@ function rewriteRepoRelativeLinks(markdown, relFileDir, meta) {
         const hash = hashPart ? `#${hashPart}` : ''
         return `${prefix}${meta.repoUrl}/${kind}/${meta.commit}/${repoRel}${hash}${suffix}`
       }
+    }
+    if (hashPart && /^\d/.test(hashPart)) {
+      return `${prefix}${pathname}#_${hashPart}${suffix}`
     }
     return full
   })
@@ -472,8 +502,12 @@ function stageDocs() {
       if (fs.existsSync(wasmMetaPath)) {
         try {
           const wasmMeta = JSON.parse(fs.readFileSync(wasmMetaPath, 'utf8'))
-          if (wasmMeta.commit && meta.commit && wasmMeta.commit !== meta.commit) {
-            const msg = `Wasm binary commit (${wasmMeta.commitShort}) differs from docs commit (${meta.commitShort}).`
+          const treeMismatch =
+            wasmMeta.sourceTreeHash && meta.sourceTreeHash
+              ? wasmMeta.sourceTreeHash !== meta.sourceTreeHash
+              : Boolean(wasmMeta.commit && meta.commit && wasmMeta.commit !== meta.commit)
+          if (treeMismatch) {
+            const msg = `Wasm binary inputs (${wasmMeta.commitShort || 'unknown'}) differ from current QmlTui sources (${meta.commitShort}). Rebuild build-wasm.`
             if (process.env.QMLTUI_REQUIRE_WASM === '1') {
               throw new Error(msg)
             }

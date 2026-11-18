@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Regenerates wasm/www/types.json from QmlTui's generated .qmltypes files and
 // src/QmlTui/Controls/*.qml sources so browser autocomplete stays in lockstep
-// with the 0.5+ QML API.
+// with the 0.6+ QML API.
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
