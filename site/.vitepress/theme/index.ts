@@ -3,6 +3,7 @@ import { useData, useRoute, withBase } from 'vitepress'
 import type { Theme } from 'vitepress'
 import { defineComponent, h, nextTick, onMounted, watch } from 'vue'
 import HomeShowcase from './HomeShowcase.vue'
+import MermaidDiagram from './MermaidDiagram.vue'
 import PlaygroundPage from './PlaygroundPage.vue'
 import SidebarToggle from './SidebarToggle.vue'
 import './custom.css'
@@ -174,6 +175,7 @@ export default {
   extends: DefaultTheme,
   Layout: CustomLayout,
   enhanceApp({ app }) {
+    app.component('MermaidDiagram', MermaidDiagram)
     app.component('PlaygroundPage', PlaygroundPage)
   },
   setup() {

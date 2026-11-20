@@ -159,6 +159,14 @@ export default defineConfig({
     hostname: 'https://qmltui.github.io/website/'
   },
 
+  vite: {
+    optimizeDeps: {
+      // Exclude static files in docs/public/ (such as playground/index.html, which
+      // resolves CodeMirror bare specifiers in the browser via <script type="importmap">).
+      entries: ['.vitepress/theme/**/*.{ts,js,vue}', '**/*.html', '!public/**']
+    }
+  },
+
   rewrites: {
     'README.md': 'index.md'
   },
@@ -170,8 +178,13 @@ export default defineConfig({
     config(md) {
       const defaultFence = md.renderer.rules.fence!
       md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+        const info = (tokens[idx]?.info || '').trim()
+        const lang = info.split(/\s+/)[0]
+        if (lang === 'mermaid') {
+          const encoded = encodeURIComponent(tokens[idx]?.content || '')
+          return `<MermaidDiagram code="${encoded}" />\n`
+        }
         const html = defaultFence(tokens, idx, options, env, self)
-        const info = tokens[idx]?.info || ''
         if (/\bno-playground\b/.test(info)) {
           return html.replace(
             /^<div class="language-/,
@@ -214,13 +227,13 @@ export default defineConfig({
     ],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:site_name', content: 'QmlTui' }],
-    ['meta', { property: 'og:title', content: 'QmlTui — Retained-Mode Terminal UIs with QML and Qt 6' }],
+    ['meta', { property: 'og:title', content: 'QmlTui — Retained-Mode QML for the Terminal' }],
     [
       'meta',
       {
         property: 'og:description',
         content:
-          'Declarative, reactive QML for terminal UI frontends, powered by Qt 6 and C++17 on QCoreApplication.'
+          'Build reactive terminal UIs with QML bindings and C++ models on QCoreApplication, without QtQuick, QtGui, or a display server.'
       }
     ],
     [

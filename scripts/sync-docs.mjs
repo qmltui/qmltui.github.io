@@ -507,7 +507,11 @@ function stageDocs() {
               ? wasmMeta.sourceTreeHash !== meta.sourceTreeHash
               : Boolean(wasmMeta.commit && meta.commit && wasmMeta.commit !== meta.commit)
           if (treeMismatch) {
-            const msg = `Wasm binary inputs (${wasmMeta.commitShort || 'unknown'}) differ from current QmlTui sources (${meta.commitShort}). Rebuild build-wasm.`
+            const detail =
+              wasmMeta.commit && meta.commit && wasmMeta.commit === meta.commit
+                ? `uncommitted worktree changes on ${meta.commitShort}`
+                : `wasm=${wasmMeta.commitShort || 'unknown'} vs qmltui=${meta.commitShort}`
+            const msg = `Wasm binary inputs differ from current QmlTui sources (${detail}). Rebuild build-wasm.`
             if (process.env.QMLTUI_REQUIRE_WASM === '1') {
               throw new Error(msg)
             }

@@ -301,3 +301,133 @@ pre code.language-text,
     width: calc(100% / 2);
   }
 }
+
+/* Native Mermaid diagrams rendered by MermaidDiagram.vue */
+.vp-doc .qmltui-mermaid {
+  position: relative;
+  margin: 20px 0;
+  padding: 20px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
+  overflow-x: auto;
+}
+
+.vp-doc .qmltui-mermaid-canvas {
+  display: flex;
+  justify-content: center;
+  cursor: zoom-in;
+}
+
+.vp-doc .qmltui-mermaid-canvas svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent VitePress .vp-doc paragraph margins/line-height from clipping Mermaid htmlLabels */
+.vp-doc .qmltui-mermaid p,
+.vp-doc .qmltui-mermaid .nodeLabel,
+.vp-doc .qmltui-mermaid .edgeLabel,
+.vp-doc .qmltui-mermaid .cluster-label,
+.qmltui-mermaid-modal p,
+.qmltui-mermaid-modal .nodeLabel,
+.qmltui-mermaid-modal .edgeLabel,
+.qmltui-mermaid-modal .cluster-label {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.4 !important;
+}
+
+.vp-doc .qmltui-mermaid-zoom-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  padding: 2px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-2);
+  font-family: var(--vp-font-family-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+  cursor: pointer;
+  opacity: 0.78;
+  transition: opacity 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.vp-doc .qmltui-mermaid:hover .qmltui-mermaid-zoom-btn,
+.vp-doc .qmltui-mermaid-zoom-btn:focus-visible {
+  opacity: 1;
+}
+
+.vp-doc .qmltui-mermaid-zoom-btn:hover {
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
+}
+
+.vp-doc .qmltui-mermaid-error {
+  color: var(--vp-c-danger-1);
+  font-size: 0.9rem;
+}
+
+.vp-doc .qmltui-mermaid-fallback {
+  margin: 0;
+  opacity: 0.6;
+}
+
+.qmltui-mermaid-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(1, 4, 9, 0.82);
+  backdrop-filter: blur(4px);
+}
+
+.qmltui-mermaid-modal-inner {
+  position: relative;
+  width: min(1240px, 95vw);
+  max-height: 92vh;
+  overflow: auto;
+  padding: 48px 24px 24px;
+  border-radius: 12px;
+  border: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+
+.qmltui-mermaid-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-1);
+  font-family: var(--vp-font-family-mono);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.qmltui-mermaid-modal-close:hover {
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
+}
+
+.qmltui-mermaid-modal-canvas {
+  display: flex;
+  justify-content: center;
+}
+
+.qmltui-mermaid-modal-canvas svg {
+  width: 100%;
+  max-width: 1180px;
+  height: auto;
+}

@@ -12,8 +12,8 @@ titleTemplate: Retained-Mode Terminal UI Framework for Qt 6
 
 hero:
   name: QmlTui
-  text: Retained-Mode Terminal UIs with QML and Qt 6
-  tagline: Declarative, reactive QML for terminal UI frontends, powered by Qt 6 and C++ for backend logic.
+  text: Retained-Mode QML for the Terminal
+  tagline: Build reactive terminal UIs with QML bindings and C++ models on QCoreApplication, without QtQuick, QtGui, or a display server.
   image:
     light: /assets/branding/qmltui_mark_light.svg
     dark: /assets/branding/qmltui_mark.svg
@@ -33,9 +33,6 @@ hero:
       text: Component Gallery
       link: ./playground?mode=gallery
       target: _blank
-    - theme: alt
-      text: Qt Quick to QmlTui
-      link: ./guides/qt-quick-to-qmltui
 
 features:
   - title: Retained QML Scene Graph
@@ -59,7 +56,7 @@ features:
     link: ./guides/testing
     linkText: Testing guide
   - title: Agentic Closed-Loop Workflow
-    details: Give coding agents plain-text UTF-8 frame captures, SGR style diffs, and structured JSON diagnostics on QCoreApplication without a TTY, plus bundled QML and Runner skills.
+    details: Let coding agents inspect coordinate-ruled UTF-8 frames, SGR styles, virtual-clock animations, and idle paint budgets headlessly on QCoreApplication, with installable agent skills.
     link: ./guides/agentic-development
     linkText: Agentic workflow
 ---
