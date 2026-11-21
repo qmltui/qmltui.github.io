@@ -220,7 +220,7 @@ function normalizeType(rawType, isList, cppToQml) {
     if (cppToQml[rawType]) {
       mapped = cppToQml[rawType]
     } else if (rawType.startsWith('qmltui::')) {
-      const short = rawType.replace(/^qmltui::(?:controls::)?/, '')
+      const short = rawType.replace(/^qmltui::/, '')
       mapped = SCALAR_TYPE_MAP[short] || short
     } else {
       mapped = rawType
