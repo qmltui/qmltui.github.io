@@ -53,6 +53,7 @@ watch(
   inset: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   z-index: 1000;
   background: #0d1117;
   display: flex;

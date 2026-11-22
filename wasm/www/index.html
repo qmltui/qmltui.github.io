@@ -21,7 +21,7 @@
     --muted: #8b949e;
   }
   html, body { height: 100%; margin: 0; }
-  body { display: grid; grid-template-rows: 2.8rem minmax(0, 1fr) 5.5rem; height: 100vh; overflow: hidden;
+  body { display: grid; grid-template-rows: 2.8rem minmax(0, 1fr) 5.5rem; height: 100vh; height: 100dvh; overflow: hidden;
          background: var(--bg); color: var(--text); font: 14px system-ui, -apple-system, sans-serif; }
   header { display: flex; gap: .55rem; align-items: center; padding: 0 1rem;
            background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; }
@@ -104,15 +104,44 @@
     background: #122d24 !important;
     color: var(--brand-bright) !important;
   }
-  #terminal { min-height: 0; min-width: 0; height: 100%; overflow: hidden; padding: .5rem; box-sizing: border-box; position: relative; }
+  #terminal {
+    min-height: 0;
+    min-width: 0;
+    height: 100%;
+    overflow: hidden;
+    padding: .5rem;
+    box-sizing: border-box;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+  }
+  /* Dedicated zero-padding host for xterm.js: FitAddon measures its parent's
+     CSS height/width without subtracting parent padding, so mounting directly
+     inside padded #terminal over-counts rows/cols and crops the bottom bar. */
+  #terminalViewport {
+    flex: 1 1 0;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    position: relative;
+  }
   #terminal .xterm { height: 100%; width: 100%; overflow: hidden; }
   #terminal .xterm-viewport { overflow-x: hidden !important; overflow-y: auto !important; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
-  /* Bottom-left Code Drawer handle overlay inside the terminal area */
+  /* Dedicated bottom control strip below the terminal viewport so the code
+     drawer toggle and exited banner never overlap the terminal's bottom row. */
+  #terminalToolbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    min-height: 2rem;
+  }
   #drawerToggleBtn {
-    position: absolute;
-    bottom: .5rem;
-    left: .5rem;
-    z-index: 30;
     background: rgba(22, 27, 34, 0.9);
     border: 1px solid #58a6ff;
     border-radius: 6px;
@@ -121,7 +150,6 @@
     font-size: .76rem;
     padding: .24rem .65rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
     transition: background .15s ease, border-color .15s ease, color .15s ease;
   }
   #drawerToggleBtn:hover {
@@ -136,25 +164,22 @@
     box-shadow: 0 0 12px rgba(0, 255, 102, 0.28);
   }
   #exitedBanner {
-    position: absolute;
-    bottom: .5rem;
-    right: .5rem;
-    z-index: 30;
     display: none;
     align-items: center;
     gap: .55rem;
-    padding: .28rem .45rem .28rem .7rem;
+    padding: .18rem .4rem .18rem .65rem;
     background: rgba(22, 27, 34, 0.94);
     border: 1px solid var(--brand);
     border-radius: 6px;
     color: var(--text);
     font-size: .78rem;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(4px);
   }
   #exitedBanner.visible { display: inline-flex; }
+  #exitedBanner button { padding: .14rem .5rem; font-size: .74rem; }
   #exitedBanner code { color: var(--brand-bright); font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .75rem; }
-  #previewFallback { display: none; flex-direction: column; align-items: center; justify-content: center;
+  #previewFallback { position: absolute; inset: 0; z-index: 20; background: var(--bg);
+                     display: none; flex-direction: column; align-items: center; justify-content: center;
                      height: 100%; gap: .8rem; text-align: center; padding: 1rem; box-sizing: border-box; }
   #previewFallback.active { display: flex; }
   #previewFallback img { max-width: 100%; max-height: calc(100% - 4.5rem); border-radius: 8px;
@@ -405,17 +430,21 @@
 <main>
   <div id="editor"></div>
   <div id="terminal">
-    <button id="drawerToggleBtn" title="Toggle QML Code Drawer">◀ Hide Code</button>
-    <div id="exitedBanner" role="status" aria-live="polite">
-      <span>Session exited (<code>Qt.quit()</code>)</span>
-      <button id="restartBtn" class="primary" title="Relaunch QML session (or press Enter in terminal)">▶ Restart</button>
+    <div id="terminalViewport">
+      <div id="previewFallback">
+        <img id="previewGif" alt="Recorded terminal preview">
+        <div class="fallback-note">
+          Showing recorded terminal preview (<span id="previewLabel">gallery-tour.gif</span>).
+          When built with Qt for WebAssembly (<code>qt-cmake -S wasm -B build-wasm</code>),
+          this pane runs the live interactive WebAssembly terminal.
+        </div>
+      </div>
     </div>
-    <div id="previewFallback">
-      <img id="previewGif" alt="Recorded terminal preview">
-      <div class="fallback-note">
-        Showing recorded terminal preview (<span id="previewLabel">gallery-tour.gif</span>).
-        When built with Qt for WebAssembly (<code>qt-cmake -S wasm -B build-wasm</code>),
-        this pane runs the live interactive WebAssembly terminal.
+    <div id="terminalToolbar">
+      <button id="drawerToggleBtn" title="Toggle QML Code Drawer">◀ Hide Code</button>
+      <div id="exitedBanner" role="status" aria-live="polite">
+        <span>Session exited (<code>Qt.quit()</code>)</span>
+        <button id="restartBtn" class="primary" title="Relaunch QML session (or press Enter in terminal)">▶ Restart</button>
       </div>
     </div>
   </div>

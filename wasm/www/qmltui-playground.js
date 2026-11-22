@@ -622,7 +622,7 @@ function initXterm() {
   });
   fit = new FitAddon.FitAddon();
   term.loadAddon(fit);
-  term.open($('terminal'));
+  term.open($('terminalViewport') || $('terminal'));
   window.qmltuiTerm = term;
   applyXtermSettings();
   fit.fit();
@@ -704,7 +704,7 @@ async function startRuntime() {
       showGrid({ keepEditorVisibility: true });
     }
   });
-  new ResizeObserver(() => fit.fit()).observe($('terminal'));
+  new ResizeObserver(() => fit.fit()).observe($('terminalViewport') || $('terminal'));
   try { instance.callMain([]); } catch (e) { if (e !== 'unwind') throw e; }
   status.textContent = 'ready';
 }
