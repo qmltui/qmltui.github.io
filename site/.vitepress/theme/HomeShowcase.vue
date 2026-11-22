@@ -115,6 +115,29 @@ const ITEMS: ShowcaseApp[] = [
     ]
   },
   {
+    id: 'turbo_hex',
+    slug: 'turbo-hex',
+    label: 'Hex Inspector',
+    mode: 'AltScreen + TVision',
+    modeIcon: '❐',
+    modeKind: 'alt',
+    gif: '/assets/showcase/turbo_hex.gif',
+    width: 1114,
+    height: 784,
+    inspiration: {
+      label: 'magiblot/tvision',
+      url: 'https://github.com/magiblot/tvision'
+    },
+    summary:
+      'Multi-window Hex & Binary Inspector built on QmlTui.TVision with synchronized Hex + ASCII views, Little/Big-Endian Data Inspector, ELF/PNG/WASM header highlighting, and Borland palettes.',
+    primitives: [
+      { name: 'Popup', link: '/qml-types/popup.html' },
+      { name: 'FocusScope', link: '/qml-types/focusscope.html' },
+      { name: 'MouseArea', link: '/qml-types/mousearea.html' },
+      { name: 'TextGridBuffer', link: '/cpp-classes/textgridbuffer.html' }
+    ]
+  },
+  {
     id: 'agent_stream',
     slug: 'agent-stream',
     label: 'Inline AI CLI',
@@ -349,7 +372,7 @@ onBeforeUnmount(() => {
           </button>
 
           <a :href="allShowcaseUrl" class="showcase-all-link">
-            Browse all 12 apps <span aria-hidden="true">→</span>
+            Browse all 13 apps <span aria-hidden="true">→</span>
           </a>
         </div>
       </div>

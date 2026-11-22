@@ -27,7 +27,7 @@ hero:
       link: ./playground
       target: _blank
     - theme: alt
-      text: Showcase (12 Apps)
+      text: Showcase (13 Apps)
       link: ./showcase
     - theme: alt
       text: Component Gallery

@@ -19,9 +19,11 @@ function resolveQmlTuiRepo() {
     return custom
   }
 
-  const sibling = path.resolve(websiteRoot, '..', 'qml-tui')
-  if (fs.existsSync(path.join(sibling, 'CMakeLists.txt'))) {
-    return sibling
+  for (const name of ['qmltui', 'qml-tui']) {
+    const sibling = path.resolve(websiteRoot, '..', name)
+    if (fs.existsSync(path.join(sibling, 'CMakeLists.txt'))) {
+      return sibling
+    }
   }
 
   const cacheRepo = path.join(websiteRoot, '.cache', 'qmltui')
@@ -46,7 +48,7 @@ function resolveQmlTuiAppsRepo() {
     }
   }
 
-  for (const name of ['qmltui-apps', 'apps']) {
+  for (const name of ['apps', 'qmltui-apps']) {
     const sibling = path.resolve(websiteRoot, '..', name)
     if (fs.existsSync(path.join(sibling, 'CMakeLists.txt'))) {
       return sibling
@@ -237,7 +239,7 @@ function injectPortalPlaygroundLinks(content, relPath) {
     let out = replaceExpected(
       content,
       '![QmlTui Interactive Gallery](assets/casts/gallery-tour.gif)',
-      '![QmlTui Interactive Gallery](assets/casts/gallery-tour.gif)\n\nYou can also write a complete `Terminal { ... }` application in the browser using the [Try It Yourself Playground](playground.md), browse all interactive components in the [WebAssembly Component Gallery](playground.md?mode=gallery), or inspect the 12 full-scale applications on the [Application Showcase](showcase.md) page.',
+      '![QmlTui Interactive Gallery](assets/casts/gallery-tour.gif)\n\nYou can also write a complete `Terminal { ... }` application in the browser using the [Try It Yourself Playground](playground.md), browse all interactive components in the [WebAssembly Component Gallery](playground.md?mode=gallery), or inspect the 13 full-scale applications on the [Application Showcase](showcase.md) page.',
       'examples.md gallery intro'
     )
     out = replaceExpected(
@@ -271,7 +273,7 @@ function injectPortalPlaygroundLinks(content, relPath) {
     out = replaceExpected(
       out,
       'and showcase apps in [qmltui/apps](https://github.com/qmltui/apps).',
-      'and 12 full-scale apps on the [Application Showcase](showcase.md) page (source in [qmltui/apps](https://github.com/qmltui/apps)).',
+      'and 13 full-scale apps on the [Application Showcase](showcase.md) page (source in [qmltui/apps](https://github.com/qmltui/apps)).',
       'getting-started.md showcase link'
     )
     return out
@@ -354,8 +356,8 @@ function upgradeHomeReadme(rawReadmePath, homeFrontmatter, meta) {
 
   readmeBody = replaceExpected(
     readmeBody,
-    'and 12 complete showcase applications (`qtop`, `agent_stream`, `file_manager`, `package_manager`, `audio_player`, and more) in [qmltui/apps](https://github.com/qmltui/apps).',
-    'and 12 complete applications on the [Application Showcase](showcase.md) page (source in [qmltui/apps](https://github.com/qmltui/apps)).',
+    'and 13 complete showcase applications (`qtop`, `agent_stream`, `file_manager`, `package_manager`, `turbo_hex`, `audio_player`, and more) in [qmltui/apps](https://github.com/qmltui/apps).',
+    'and 13 complete applications on the [Application Showcase](showcase.md) page (source in [qmltui/apps](https://github.com/qmltui/apps)).',
     'README.md showcase link'
   )
 
@@ -476,8 +478,26 @@ function stageDocs() {
   }
 
   // 7. Stage prebuilt Qt for WebAssembly playground binary if available
+  if (process.env.QMLTUI_WASM_DIR) {
+    const customWasmDir = path.resolve(process.env.QMLTUI_WASM_DIR)
+    const hasCustomWasm =
+      fs.existsSync(path.join(customWasmDir, 'qmltui_playground.js')) &&
+      fs.existsSync(path.join(customWasmDir, 'qmltui_playground.wasm'))
+    if (!hasCustomWasm) {
+      const hint =
+        customWasmDir === wasmWwwDir
+          ? ' (wasm/www holds static HTML/JS sources; compiled Wasm binaries are output to build-wasm/www)'
+          : ''
+      const msg = `QMLTUI_WASM_DIR does not contain compiled qmltui_playground.js/.wasm: ${customWasmDir}${hint}`
+      if (process.env.QMLTUI_REQUIRE_WASM === '1') {
+        throw new Error(msg)
+      }
+      console.warn(`[sync-docs] WARNING: ${msg}`)
+    }
+  }
+
   const wasmCandidates = [
-    process.env.QMLTUI_WASM_DIR,
+    process.env.QMLTUI_WASM_DIR && path.resolve(process.env.QMLTUI_WASM_DIR),
     path.join(websiteRoot, 'build-wasm', 'www'),
     path.join(websiteRoot, 'build-wasm', 'playground'),
     path.join(websiteRoot, 'build-wasm'),
@@ -486,7 +506,10 @@ function stageDocs() {
 
   let wasmFound = false
   for (const cand of wasmCandidates) {
-    if (fs.existsSync(path.join(cand, 'qmltui_playground.js'))) {
+    if (
+      fs.existsSync(path.join(cand, 'qmltui_playground.js')) &&
+      fs.existsSync(path.join(cand, 'qmltui_playground.wasm'))
+    ) {
       for (const art of [
         'qmltui_playground.js',
         'qmltui_playground.wasm',
@@ -528,7 +551,7 @@ function stageDocs() {
 
   if (process.env.QMLTUI_REQUIRE_WASM === '1' && !wasmFound) {
     throw new Error(
-      'QMLTUI_REQUIRE_WASM=1 is set, but qmltui_playground.js/.wasm was not found in build-wasm/www.'
+      'QMLTUI_REQUIRE_WASM=1 is set, but compiled qmltui_playground.js/.wasm was not found in build-wasm/www. Build it first with qt-cmake -S wasm -B build-wasm && cmake --build build-wasm --parallel (or omit QMLTUI_REQUIRE_WASM=1 for GIF preview mode).'
     )
   }
 

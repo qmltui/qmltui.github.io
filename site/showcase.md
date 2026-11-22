@@ -1,6 +1,6 @@
 # Application Showcase
 
-Twelve full-scale terminal applications built with **QmlTui** and Qt 6, demonstrating both full-screen `Terminal.AltScreen` workspaces and streaming `Terminal.Inline` CLIs. Source code, CMake configuration, and `Runner` test scenarios live in [`qmltui/apps`]({{APPS_REPO_URL}}).
+Thirteen full-scale terminal applications built with **QmlTui** and Qt 6, demonstrating both full-screen `Terminal.AltScreen` workspaces and streaming `Terminal.Inline` CLIs. Source code, CMake configuration, and `Runner` test scenarios live in [`qmltui/apps`]({{APPS_REPO_URL}}).
 
 ```sh
 git clone {{APPS_REPO_URL}}.git
@@ -75,6 +75,14 @@ Terminal Markdown document reader powered by `md4qt` AST parsing with syntax-hig
 - **Source**: [`apps/markdown_viewer`]({{APPS_REPO_URL}}/tree/{{APPS_COMMIT}}/apps/markdown_viewer)
 
 ![markdown_viewer showcase](assets/showcase/markdown_viewer.gif)
+
+### `turbo_hex`
+
+IDA `idat`- and Borland Turbo Debugger-inspired multi-window **Hex & Binary Inspector** built on the [`QmlTui.TVision`](https://github.com/qmltui/tvision) MDI add-on module. Synchronizes tileable `BoundedSelfPaint` Hex + ASCII windows with a live Little/Big-Endian Data Inspector, ELF/PNG/ZIP/WASM header & string span highlighting, hex/text search, in-place byte patching, and switchable BIOS palettes.
+
+- **Source**: [`apps/turbo_hex`]({{APPS_REPO_URL}}/tree/{{APPS_COMMIT}}/apps/turbo_hex) · **Add-on**: [`qmltui/tvision`](https://github.com/qmltui/tvision)
+
+![turbo_hex showcase](assets/showcase/turbo_hex.gif)
 
 ---
 

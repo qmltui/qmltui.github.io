@@ -12,6 +12,7 @@ const outputPath = path.join(websiteRoot, 'wasm', 'www', 'types.json')
 function resolveQmlTuiDir() {
   const candidates = [
     process.env.QMLTUI_REPO_DIR,
+    path.resolve(websiteRoot, '..', 'qmltui'),
     path.resolve(websiteRoot, '..', 'qml-tui'),
     path.join(websiteRoot, '.cache', 'qmltui')
   ].filter(Boolean)
@@ -19,16 +20,28 @@ function resolveQmlTuiDir() {
     const abs = path.resolve(cand)
     if (fs.existsSync(path.join(abs, 'CMakeLists.txt'))) return abs
   }
-  throw new Error('Could not locate qml-tui source directory. Set QMLTUI_REPO_DIR.')
+  throw new Error('Could not locate qmltui source directory. Set QMLTUI_REPO_DIR.')
+}
+
+const REQUIRED_QMLTYPES = [
+  ['QmlTui', 'QmlTuiCore.qmltypes'],
+  ['QmlTui', 'Controls', 'QmlTuiControls.qmltypes'],
+  ['QmlTui', 'Image', 'QmlTuiImage.qmltypes']
+]
+
+function hasRequiredQmlTypes(qmlRoot) {
+  return REQUIRED_QMLTYPES.every((segs) => fs.existsSync(path.join(qmlRoot, ...segs)))
 }
 
 function resolveQmlTypesRoot(qmltuiDir) {
   if (process.env.QMLTUI_BUILD_DIR) {
     const explicit = path.join(path.resolve(process.env.QMLTUI_BUILD_DIR), 'qml')
-    if (fs.existsSync(path.join(explicit, 'QmlTui', 'QmlTuiCore.qmltypes'))) {
+    if (hasRequiredQmlTypes(explicit)) {
       return explicit
     }
-    throw new Error(`QMLTUI_BUILD_DIR does not contain qml/QmlTui/QmlTuiCore.qmltypes: ${explicit}`)
+    throw new Error(
+      `QMLTUI_BUILD_DIR is missing QmlTuiCore/QmlTuiControls/QmlTuiImage .qmltypes under: ${explicit} (ensure -DQMLTUI_ENABLE_IMAGE=ON)`
+    )
   }
 
   const candidates = [
@@ -37,7 +50,7 @@ function resolveQmlTypesRoot(qmltuiDir) {
     path.join(qmltuiDir, 'build-wasm', 'qml')
   ]
   const existing = candidates
-    .filter((cand) => fs.existsSync(path.join(cand, 'QmlTui', 'QmlTuiCore.qmltypes')))
+    .filter((cand) => hasRequiredQmlTypes(cand))
     .sort((a, b) => {
       const ma = fs.statSync(path.join(a, 'QmlTui', 'QmlTuiCore.qmltypes')).mtimeMs
       const mb = fs.statSync(path.join(b, 'QmlTui', 'QmlTuiCore.qmltypes')).mtimeMs
@@ -48,7 +61,7 @@ function resolveQmlTypesRoot(qmltuiDir) {
     return existing[0]
   }
   throw new Error(
-    'Could not find QmlTuiCore.qmltypes in ../qml-tui/build/qml or build-wasm/qml. Build QmlTui or build-wasm first.'
+    'Could not find QmlTuiCore/QmlTuiControls/QmlTuiImage .qmltypes in build-wasm/qml or ../qmltui/build/qml. Build build-wasm (or QmlTui with -DQMLTUI_ENABLE_IMAGE=ON) first.'
   )
 }
 
