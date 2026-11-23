@@ -156,7 +156,7 @@ export default defineConfig({
   cleanUrls: false,
   appearance: 'dark',
   sitemap: {
-    hostname: 'https://qmltui.github.io/website/'
+    hostname: 'https://qmltui.github.io/'
   },
 
   vite: {
@@ -240,7 +240,7 @@ export default defineConfig({
       'meta',
       {
         property: 'og:image',
-        content: 'https://qmltui.github.io/website/assets/branding/qmltui_logo_sheet.png'
+        content: 'https://qmltui.github.io/assets/branding/qmltui_logo_sheet.png'
       }
     ],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
@@ -248,7 +248,7 @@ export default defineConfig({
       'meta',
       {
         name: 'twitter:image',
-        content: 'https://qmltui.github.io/website/assets/branding/qmltui_logo_sheet.png'
+        content: 'https://qmltui.github.io/assets/branding/qmltui_logo_sheet.png'
       }
     ],
     [

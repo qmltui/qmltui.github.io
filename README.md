@@ -1,12 +1,12 @@
-# QmlTui Website & WebAssembly Playground (`qmltui/website`)
+# QmlTui Website & WebAssembly Playground (`qmltui/qmltui.github.io`)
 
-Documentation portal (VitePress), Application Showcase gallery, and interactive browser playground (`xterm.js` + CodeMirror 6 + Qt for WebAssembly) for [QmlTui](https://github.com/qmltui/qmltui).
+Documentation portal (VitePress), Application Showcase gallery, and interactive browser playground (`xterm.js` + CodeMirror 6 + Qt for WebAssembly) for [QmlTui](https://github.com/qmltui/qmltui), published at [qmltui.github.io](https://qmltui.github.io/).
 
 ## Repository Responsibilities
 
 - **[`qmltui/qmltui`](https://github.com/qmltui/qmltui)**: Core C++/QML library, `WasmTerminalBackend`, `cmake/QmlTuiWasm.cmake` (`qmltui_wasm_app()`), component gallery (`examples/gallery/`), copyable recipes (`examples/recipes/`), pure GitHub-Flavored Markdown docs (`docs/**/*.md`), and the sidebar manifest (`docs/nav.json`).
 - **[`qmltui/apps`](https://github.com/qmltui/apps)**: Thirteen full-scale showcase applications (`qtop`, `agent_stream`, `file_manager`, `package_manager`, `turbo_hex`, `audio_player`, `industrial_plc_hmi`, `container_fleet`, `markdown_viewer`, `plotting_dashboard`, `screensaver`, `snake_game`, `twozero48`) and their recorded `.gif`/`.cast` previews (`docs/assets/casts/`).
-- **[`qmltui/website`](https://github.com/qmltui/website)** *(this repo)*: VitePress theme and site configuration (`site/`), doc/showcase sync and QML autocomplete index generators (`scripts/sync-docs.mjs`, `scripts/generate-types.mjs`), and the live browser QML Playground (`wasm/`).
+- **[`qmltui/qmltui.github.io`](https://github.com/qmltui/qmltui.github.io)** *(this repo)*: VitePress theme and site configuration (`site/`), doc/showcase sync and QML autocomplete index generators (`scripts/sync-docs.mjs`, `scripts/generate-types.mjs`), and the live browser QML Playground (`wasm/`).
 
 ## Synchronization & Playground Architecture
 
@@ -69,9 +69,9 @@ npm run types
 QMLTUI_REQUIRE_WASM=1 npm run docs:build
 npm run docs:preview
 
-# Subpath deployment (e.g. GitHub Pages at /website/)
-QMLTUI_REQUIRE_WASM=1 VITEPRESS_BASE=/website/ npm run docs:build
-VITEPRESS_BASE=/website/ npm run docs:preview
+# Subpath deployment (optional, e.g. serving under a custom subpath)
+QMLTUI_REQUIRE_WASM=1 VITEPRESS_BASE=/qmltui/ npm run docs:build
+VITEPRESS_BASE=/qmltui/ npm run docs:preview
 
 # Docs-only static bundle (uses recorded GIF previews if build-wasm is absent)
 npm run docs:build

@@ -937,7 +937,7 @@ if (!location.pathname.includes('/playground/')) {
   for (const id of ['homeLink', 'docsLink']) {
     const el = $(id);
     if (el) {
-      el.href = 'https://qmltui.github.io/website/';
+      el.href = 'https://qmltui.github.io/';
       el.target = '_blank';
       el.rel = 'noopener';
     }

@@ -266,7 +266,7 @@ function injectPortalPlaygroundLinks(content, relPath) {
   if (relPath === 'getting-started.md') {
     let out = replaceExpected(
       content,
-      /https:\/\/qmltui\.github\.io\/website\/playground\.html/g,
+      /https:\/\/qmltui\.github\.io\/(?:website\/)?playground\.html/g,
       'playground.md',
       'getting-started.md playground URLs'
     )

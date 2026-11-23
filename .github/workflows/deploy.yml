@@ -34,7 +34,7 @@ jobs:
       QMLTUI_REF: ${{ github.event.client_payload.ref || inputs.qmltui_ref || 'main' }}
       QMLTUI_APPS_REF: ${{ github.event.client_payload.apps_ref || inputs.qmltui_apps_ref || 'main' }}
     steps:
-      - name: Checkout qmltui/website
+      - name: Checkout qmltui/qmltui.github.io
         uses: actions/checkout@v4
 
       - name: Checkout qmltui/qmltui at ${{ env.QMLTUI_REF }}
