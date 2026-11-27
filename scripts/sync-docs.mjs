@@ -349,15 +349,15 @@ function upgradeHomeReadme(rawReadmePath, homeFrontmatter, meta) {
 
   readmeBody = replaceExpected(
     readmeBody,
-    'Browse 45 interactive controls, views, layouts, animations, and terminal capabilities in `qmltui_gallery`:\n\n![QmlTui Interactive Component Gallery](assets/casts/gallery-tour.gif)',
-    'Browse 45 interactive controls, views, layouts, animations, and terminal capabilities in the component gallery. **[▶ Try the Component Gallery live in your browser](playground.md?mode=gallery)** or open the **[Try It Yourself Playground](playground.md)** to edit and run QML directly via WebAssembly:\n\n[![QmlTui Interactive Component Gallery](assets/casts/gallery-tour.gif)](playground.md?mode=gallery)',
+    /(Browse [^\n]+ in `qmltui_gallery`):\r?\n\r?\n!\[QmlTui Interactive Component Gallery\]\(assets\/casts\/gallery-tour\.gif\)/,
+    '$1. **[▶ Try the Component Gallery live in your browser](playground.md?mode=gallery)** or open the **[Try It Yourself Playground](playground.md)** to edit and run QML directly via WebAssembly:\n\n[![QmlTui Interactive Component Gallery](assets/casts/gallery-tour.gif)](playground.md?mode=gallery)',
     'README.md gallery section'
   )
 
   readmeBody = replaceExpected(
     readmeBody,
-    'and 13 complete showcase applications (`qtop`, `agent_stream`, `file_manager`, `package_manager`, `turbo_hex`, `audio_player`, and more) in [qmltui/apps](https://github.com/qmltui/apps).',
-    'and 13 complete applications on the [Application Showcase](showcase.md) page (source in [qmltui/apps](https://github.com/qmltui/apps)).',
+    /(\d+ complete) showcase applications \([^)\n]+\) in \[qmltui\/apps\]\(https:\/\/github\.com\/qmltui\/apps\)\./,
+    '$1 applications on the [Application Showcase](showcase.md) page (source in [qmltui/apps](https://github.com/qmltui/apps)).',
     'README.md showcase link'
   )
 
