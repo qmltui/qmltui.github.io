@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { useData } from 'vitepress'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import {
+  attemptStaleChunkReload,
+  clearStaleChunkReloadMark,
+  isDynamicImportError,
+  isStaleChunkReloading
+} from './staleChunkRecovery'
 
 const props = defineProps<{
   code: string
@@ -9,9 +15,11 @@ const props = defineProps<{
 const { isDark } = useData()
 const svgMarkup = ref('')
 const renderError = ref('')
+const isChunkError = ref(false)
 const expanded = ref(false)
 const containerEl = ref<HTMLElement | null>(null)
 const modalEl = ref<HTMLElement | null>(null)
+let unmounted = false
 
 const decodedSource = computed(() => {
   try {
@@ -125,6 +133,7 @@ async function renderDiagram(): Promise<void> {
   const src = decodedSource.value
 
   const run = getRenderQueue().then(async () => {
+    if (unmounted || isStaleChunkReloading()) return
     try {
       const mod = await import('mermaid')
       const mermaid = mod.default
@@ -157,14 +166,22 @@ async function renderDiagram(): Promise<void> {
 
       const id = nextRenderId()
       const { svg, bindFunctions } = await mermaid.render(id, src)
+      if (unmounted) return
+      clearStaleChunkReloadMark()
+      isChunkError.value = false
       renderError.value = ''
       svgMarkup.value = svg
       lastBindFunctions = bindFunctions
       await nextTick()
-      if (containerEl.value && bindFunctions) {
+      if (!unmounted && containerEl.value && bindFunctions) {
         bindFunctions(containerEl.value)
       }
     } catch (err) {
+      if (unmounted) return
+      if (isStaleChunkReloading() || (isDynamicImportError(err) && attemptStaleChunkReload())) {
+        return
+      }
+      isChunkError.value = isDynamicImportError(err)
       renderError.value = err instanceof Error ? err.message : String(err)
       svgMarkup.value = ''
     }
@@ -172,6 +189,12 @@ async function renderDiagram(): Promise<void> {
 
   setRenderQueue(run.catch(() => {}))
   await run
+}
+
+function reloadPage(): void {
+  if (typeof window === 'undefined') return
+  clearStaleChunkReloadMark()
+  window.location.reload()
 }
 
 function onKeyDown(e: KeyboardEvent): void {
@@ -197,6 +220,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  unmounted = true
   if (typeof window !== 'undefined') {
     window.removeEventListener('keydown', onKeyDown)
   }
@@ -213,7 +237,17 @@ watch([isDark, decodedSource], () => {
 <template>
   <div class="qmltui-mermaid">
     <div v-if="renderError" class="qmltui-mermaid-error">
-      <strong>Mermaid render error:</strong> {{ renderError }}
+      <div class="qmltui-mermaid-error-header">
+        <span><strong>Mermaid render error:</strong> {{ renderError }}</span>
+        <button
+          v-if="isChunkError"
+          type="button"
+          class="qmltui-mermaid-reload-btn"
+          @click="reloadPage"
+        >
+          Reload page
+        </button>
+      </div>
       <pre><code>{{ decodedSource }}</code></pre>
     </div>
     <template v-else>

@@ -4,7 +4,6 @@ build-wasm/
 docs/
 public/
 node_modules/
-package-lock.json
 site/.vitepress/build-meta.json
 
 # Editor and OS files

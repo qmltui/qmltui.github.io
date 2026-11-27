@@ -6,6 +6,7 @@ import HomeShowcase from './HomeShowcase.vue'
 import MermaidDiagram from './MermaidDiagram.vue'
 import PlaygroundPage from './PlaygroundPage.vue'
 import SidebarToggle from './SidebarToggle.vue'
+import { installStaleChunkRecovery } from './staleChunkRecovery'
 import './custom.css'
 
 function toBase64Url(str: string): string {
@@ -175,6 +176,7 @@ export default {
   extends: DefaultTheme,
   Layout: CustomLayout,
   enhanceApp({ app }) {
+    installStaleChunkRecovery()
     app.component('MermaidDiagram', MermaidDiagram)
     app.component('PlaygroundPage', PlaygroundPage)
   },

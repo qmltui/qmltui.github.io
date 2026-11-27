@@ -372,6 +372,34 @@ pre code.language-text,
   font-size: 0.9rem;
 }
 
+.vp-doc .qmltui-mermaid-error-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.vp-doc .qmltui-mermaid-reload-btn {
+  padding: 3px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  font-family: var(--vp-font-family-mono);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.vp-doc .qmltui-mermaid-reload-btn:hover {
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
+}
+
 .vp-doc .qmltui-mermaid-fallback {
   margin: 0;
   opacity: 0.6;

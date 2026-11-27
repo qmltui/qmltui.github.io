@@ -34,7 +34,7 @@ Documentation portal (VitePress), Application Showcase gallery, and interactive 
 ### 1. Local Documentation Development
 
 ```bash
-npm install --no-package-lock
+npm ci
 npm run docs:dev
 ```
 
